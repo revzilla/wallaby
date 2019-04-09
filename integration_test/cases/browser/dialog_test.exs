@@ -50,9 +50,9 @@ defmodule Wallaby.Integration.Browser.DialogTest do
 
   describe "accept_prompt/2" do
     test "accept window.prompt with default value and get message", %{page: page} do
-      message = accept_prompt page, fn(p) ->
+      message = accept_prompt(page, fn(p) ->
         click(p, Query.link("Prompt"))
-      end
+      end)
       result =
         page
         |> find(Query.css("#result"))
@@ -92,9 +92,9 @@ defmodule Wallaby.Integration.Browser.DialogTest do
 
   describe "dismiss_prompt/2" do
     test "dismiss window.prompt and get message", %{page: page} do
-      message = dismiss_prompt page, fn(p) ->
+      message = dismiss_prompt(page, fn(p) ->
         click(p, Query.link("Prompt"))
-      end
+      end)
 
       result =
         page

@@ -363,6 +363,9 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   defp cast_as_element(parent, %{"ELEMENT" => id}) do
     cast_as_element(parent, %{@web_element_identifier => id})
   end
+  defp cast_as_element(parent, {_, _}) do
+    cast_as_element(parent, %{@web_element_identifier => parent.id})
+  end
   defp cast_as_element(parent, %{@web_element_identifier => id}) do
     %Wallaby.Element{
       id: id,
