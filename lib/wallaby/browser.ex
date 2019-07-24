@@ -170,6 +170,11 @@ defmodule Wallaby.Browser do
       |> fill_in(Query.text_field("name"), with: "Chris")
       |> fill_in(Query.css("#password_field", with: "secret42"))
 
+  ### Note
+  
+  Currently, ChromeDriver only supports [BMP Unicode](http://www.unicode.org/roadmaps/bmp/) characters. Emojis are [SMP](https://www.unicode.org/roadmaps/smp/) characters and will be ignored by ChromeDriver.
+
+  Using JavaScript is a known workaround for filling in fields with Emojis and other non-BMP characters.
   """
   @spec fill_in(parent, Query.t, with: String.t) :: parent
   def fill_in(parent, query, with: value) do
@@ -205,8 +210,9 @@ defmodule Wallaby.Browser do
   tests are run in.
 
   Pass `[{:name, "some_name"}]` to specify the file name. Defaults to a timestamp.
+  Pass `[{:log, true}]` to log the location of the screenshot to stdout. Defaults to false.
   """
-  @type take_screenshot_opt :: {:name, String.t}
+  @type take_screenshot_opt :: {:name, String.t} | {:log, boolean}
   @spec take_screenshot(parent, [take_screenshot_opt]) :: parent
 
   def take_screenshot(%{driver: driver} = screenshotable, opts \\ []) do
@@ -217,6 +223,10 @@ defmodule Wallaby.Browser do
     name = opts |> Keyword.get(:name, :erlang.system_time) |> to_string
     path = path_for_screenshot(name)
     File.write! path, image_data
+
+    if opts[:log] do
+      IO.puts "Screenshot taken, find it at file:///#{path}"
+    end
 
     Map.update(screenshotable, :screenshots, [], &(&1 ++ [path]))
   end
@@ -311,6 +321,12 @@ defmodule Wallaby.Browser do
       iex> Wallaby.Session.send_keys(session, ["Example Text", :enter])
       iex> Wallaby.Session.send_keys(session, [:enter])
       iex> Wallaby.Session.send_keys(session, [:shift, :enter])
+
+  ### Note
+  
+  Currently, ChromeDriver only supports [BMP Unicode](http://www.unicode.org/roadmaps/bmp/) characters. Emojis are [SMP](https://www.unicode.org/roadmaps/smp/) characters and will be ignored by ChromeDriver.
+
+  Using JavaScript is a known workaround for filling in fields with Emojis and other non-BMP characters.
   """
   @spec send_keys(parent, Query.t, Element.keys_to_send) :: parent
   @spec send_keys(parent, Element.keys_to_send) :: parent
@@ -378,13 +394,23 @@ defmodule Wallaby.Browser do
   end
 
   @doc """
-  Clicks a element.
+  Clicks an element.
   """
   @spec click(parent, Query.t) :: parent
 
   def click(parent, query) do
     parent
     |> find(query, &Element.click/1)
+  end
+
+  @doc """
+  Hovers over an element.
+  """
+  @spec hover(parent, Query.t) :: parent
+
+  def hover(parent, query) do
+    parent
+    |> find(query, &Element.hover/1)
   end
 
   @doc """
@@ -467,7 +493,7 @@ defmodule Wallaby.Browser do
         query = %Query{query | result: result}
 
         if Wallaby.screenshot_on_failure? do
-          take_screenshot(parent)
+          take_screenshot(parent, log: true)
         end
 
         case validate_html(parent, query) do
@@ -480,7 +506,7 @@ defmodule Wallaby.Browser do
 
       {:error, e} ->
         if Wallaby.screenshot_on_failure? do
-          take_screenshot(parent)
+          take_screenshot(parent, log: true)
         end
 
         raise Wallaby.QueryError, ErrorMessage.message(query, e)
@@ -612,7 +638,7 @@ defmodule Wallaby.Browser do
       else
         error ->
           if Wallaby.screenshot_on_failure? do
-            take_screenshot(parent)
+            take_screenshot(parent, log: true)
           end
           case error do
             {:error, {:not_found, results}} ->
