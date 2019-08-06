@@ -91,10 +91,10 @@ defmodule Wallaby.Experimental.Chrome do
       user_agent()
       |> Metadata.append(opts[:metadata])
 
-    capabilities = capabilities(user_agent: user_agent)
+    capabilities = %{firstMatch: [capabilities(user_agent: user_agent)], chromeOptions: chrome_options(user_agent: user_agent)}
 
     with {:ok, response} <- create_session_fn.(base_url, capabilities) do
-      id = response["sessionId"]
+      id = response["value"]["sessionId"]
 
       session = %Wallaby.Session{
         session_url: base_url <> "session/#{id}",
@@ -243,28 +243,17 @@ defmodule Wallaby.Experimental.Chrome do
 
   defp capabilities(opts) do
     default_capabilities()
-    |> Map.put(:chromeOptions, chrome_options(opts))
+    |> Map.put("goog:chromeOptions", chrome_options(opts))
   end
 
   defp default_capabilities do
     %{
-      javascriptEnabled: false,
-      loadImages: false,
-      version: "",
-      rotatable: false,
-      takesScreenshot: true,
-      cssSelectorsEnabled: true,
-      nativeEvents: false,
-      platform: "ANY",
-      unhandledPromptBehavior: "accept",
-      loggingPrefs: %{
-        browser: "DEBUG"
-      }
+      unhandledPromptBehavior: "accept"
     }
   end
 
   defp chrome_options(opts) do
-    %{args: chrome_args(opts)}
+    %{args: chrome_args(opts), w3c: true}
     |> put_unless_nil(:binary, chrome_binary_option())
   end
 

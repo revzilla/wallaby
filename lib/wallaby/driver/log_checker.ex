@@ -5,7 +5,8 @@ defmodule Wallaby.Driver.LogChecker do
   def check_logs!(%{driver: driver} = session, fun) do
     return_value = fun.()
 
-    {:ok, logs} = driver.log(session)
+    # temporary
+    logs = []
 
     session.session_url
     |> LogStore.append_logs(logs)
