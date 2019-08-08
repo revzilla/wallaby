@@ -342,7 +342,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec execute_script_async(Session.t | Element.t, String.t, Keyword.t) :: {:ok, any}
   def execute_script_async(session, script, arguments \\ []) do
-    with {:ok, resp} <- request(:post, "#{session.session_url}/execute_async", %{script: script, args: arguments}),
+    with {:ok, resp} <- request(:post, "#{session.session_url}/execute/async", %{script: script, args: arguments}),
           {:ok, value} <- Map.fetch(resp, "value"),
       do: {:ok, value}
   end
