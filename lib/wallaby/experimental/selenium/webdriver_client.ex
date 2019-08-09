@@ -90,7 +90,9 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   def dismiss_confirm(session, fun) do
     fun.(session)
     with  {:ok, value} <- alert_text(session),
-          {:ok, _r} <- request(:post, "#{session.url}/alert/dismiss"),
+          # We're passing dummy params because chromedriver complains when we don't send any params
+          # ¯\_(ツ)_/¯
+          {:ok, _r} <- request(:post, "#{session.url}/alert/dismiss", %{"dummy params" => "dummy"}),
       do: value
   end
 
