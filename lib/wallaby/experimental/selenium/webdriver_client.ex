@@ -144,7 +144,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   @spec hover(Element.t) :: {:ok, map}
   def hover(%Element{session_url: session_url, id: id}) do
     with  {:ok, resp} <- request(:post, "#{session_url}/actions", %{"actions" => [%{"id" => "default mouse", "type" => "pointer", "parameters" => %{"pointerType" => "mouse"}, "actions" => [%{"type" => "pointerMove", "origin" => %{@web_element_identifier => id}, "x" => 0, "y" => 0}]}]}),
-          {:ok, value} <- Map.fetch(IO.inspect(resp), "value"),
+          {:ok, value} <- Map.fetch(resp, "value"),
       do: {:ok, value}
   end
 
