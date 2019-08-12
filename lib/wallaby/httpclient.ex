@@ -86,6 +86,8 @@ defmodule Wallaby.HTTPClient do
         {:error, :stale_reference}
       %{"message" => "stale element reference" <> _} ->
         {:error, :stale_reference}
+      %{"error" => "stale element reference" <> _} ->
+        {:error, :stale_reference}
       %{"message" => "An element command failed because the referenced element is no longer available" <> _} ->
         {:error, :stale_reference}
       %{"message" => "invalid selector" <> _} ->
