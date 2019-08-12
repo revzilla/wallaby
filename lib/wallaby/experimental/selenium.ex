@@ -30,7 +30,18 @@ defmodule Wallaby.Experimental.Selenium do
   @spec start_session([start_session_opts]) :: {:ok, Session.t}
   def start_session(opts \\ []) do
     base_url = Keyword.get(opts, :remote_url, "http://localhost:4444/wd/hub/")
-    capabilities = %{firstMatch: [%{browserName: "firefox", "moz:firefoxOptions": %{args: ["-headless"]}}]}
+    capabilities = %{
+        firstMatch: [
+          %{
+            browserName: "firefox",
+            "moz:firefoxOptions": %{
+              args: [
+                "-headless"
+              ]
+            }
+          }
+        ]
+      }
     create_session_fn = Keyword.get(opts, :create_session_fn,
                                     &WebdriverClient.create_session/2)
 
@@ -132,6 +143,10 @@ defmodule Wallaby.Experimental.Selenium do
 
   def attribute(%Element{} = element, name) do
     WebdriverClient.attribute(element, name)
+  end
+
+  def property(%Element{} = element, name) do
+    WebdriverClient.property(element, name)
   end
 
   @spec clear(Element.t) :: {:ok, nil} | {:error, Driver.reason}

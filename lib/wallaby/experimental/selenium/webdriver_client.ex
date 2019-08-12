@@ -156,10 +156,25 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
 
   @doc """
   Gets the value of an elements attribute
+
+  This should return the default element attribute value from HTML
+  but Chromium seems to return current DOM property value for some reason.
   """
   @spec attribute(Element.t, String.t) :: {:ok, String.t}
   def attribute(element, name) do
     with {:ok, resp}  <- request(:get, "#{element.url}/attribute/#{name}"),
+          {:ok, value} <- Map.fetch(resp, "value"),
+      do: {:ok, value}
+  end
+
+  @doc """
+  Gets the value of an elements property
+
+  This should return the current element property value from the DOM
+  """
+  @spec property(Element.t, String.t) :: {:ok, String.t}
+  def property(element, name) do
+    with {:ok, resp}  <- request(:get, "#{element.url}/property/#{name}"),
           {:ok, value} <- Map.fetch(resp, "value"),
       do: {:ok, value}
   end

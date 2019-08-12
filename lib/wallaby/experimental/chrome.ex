@@ -181,6 +181,8 @@ defmodule Wallaby.Experimental.Chrome do
   @doc false
   def attribute(element, name), do: delegate(:attribute, element, [name])
   @doc false
+  def property(element, name), do: delegate(:property, element, [name])
+  @doc false
   def click(element), do: delegate(:click, element)
   @doc false
   def hover(element), do: delegate(:hover, element)
