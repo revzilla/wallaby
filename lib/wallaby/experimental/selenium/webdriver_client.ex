@@ -71,7 +71,9 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   def accept_alert(session, fun) do
     fun.(session)
     with  {:ok, value} <- alert_text(session),
-          {:ok, _r} <- request(:post, "#{session.url}/alert/accept"),
+          # We're passing dummy params because selenium (?) complains when we don't send any params
+          # ¯\_(ツ)_/¯
+          {:ok, _r} <- request(:post, "#{session.url}/alert/accept", %{"dummy" => "param"}),
       do: value
   end
 
@@ -89,16 +91,18 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   def dismiss_confirm(session, fun) do
     fun.(session)
     with  {:ok, value} <- alert_text(session),
-          # We're passing dummy params because chromedriver complains when we don't send any params
+          # We're passing dummy params because selenium (?) complains when we don't send any params
           # ¯\_(ツ)_/¯
-          {:ok, _r} <- request(:post, "#{session.url}/alert/dismiss", %{"dummy params" => "dummy"}),
+          {:ok, _r} <- request(:post, "#{session.url}/alert/dismiss", %{"dummy" => "param"}),
       do: value
   end
 
   def accept_prompt(session, input, fun) when is_nil(input) do
     fun.(session)
     with  {:ok, value} <- alert_text(session),
-          {:ok, _r} <- request(:post, "#{session.url}/alert/accept"),
+          # We're passing dummy params because selenium (?) complains when we don't send any params
+          # ¯\_(ツ)_/¯
+          {:ok, _r} <- request(:post, "#{session.url}/alert/accept", %{"dummy" => "param"}),
       do: value
   end
 
@@ -106,7 +110,9 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
     fun.(session)
     with  {:ok, _r} <- request(:post, "#{session.url}/alert/text", %{text: input}),
           {:ok, value} <- alert_text(session),
-          {:ok, _r} <- request(:post, "#{session.url}/alert/accept"),
+          # We're passing dummy params because selenium (?) complains when we don't send any params
+          # ¯\_(ツ)_/¯
+          {:ok, _r} <- request(:post, "#{session.url}/alert/accept", %{"dummy" => "param"}),
       do: value
   end
 
