@@ -254,6 +254,18 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   end
 
   @doc """
+  Gets the value of an elements property
+
+  This should return the current element property value from the DOM
+  """
+  @spec property(Element.t, String.t) :: {:ok, String.t}
+  def property(element, name) do
+    with {:ok, resp}  <- request(:get, "#{element.url}/property/#{name}"),
+          {:ok, value} <- Map.fetch(resp, "value"),
+      do: {:ok, value}
+  end
+
+  @doc """
   Visit a specific page.
   """
   @spec visit(Session.t(), String.t()) :: :ok
