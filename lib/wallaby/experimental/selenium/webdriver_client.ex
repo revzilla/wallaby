@@ -353,14 +353,14 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   Sends a list of key strokes to active element
   """
   @spec send_keys(Session.t, [String.t | atom]) :: {:ok, nil}
-  def send_keys(%Session{} = session, keys) when is_list(keys) do
-    with {:ok, resp} <- request(:post, "#{session.session_url}/keys", KeyCodes.json(keys), encode_json: false),
+  def send_keys(%Session{} = session, [keys]) do
+    with {:ok, resp} <- request(:post, "#{session.session_url}/keys", %{"text" => keys}),
           {:ok, value} <- Map.fetch(resp, "value"),
     do: {:ok, value}
   end
 
-  def send_keys(parent, keys) when is_list(keys) do
-    with {:ok, resp} <- request(:post, "#{parent.url}/value", KeyCodes.json(keys), encode_json: false),
+  def send_keys(parent, [keys]) do
+    with {:ok, resp} <- request(:post, "#{parent.url}/value", %{"text" => keys}),
           {:ok, value} <- Map.fetch(resp, "value"),
     do: {:ok, value}
   end
