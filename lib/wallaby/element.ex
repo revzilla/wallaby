@@ -137,6 +137,19 @@ defmodule Wallaby.Element do
   end
 
   @doc """
+  Gets the value of the element's property.
+  """
+  @spec prop(t, attr()) :: String.t | nil
+  def prop(%__MODULE__{driver: driver} = element, name) do
+    case driver.property(element, name) do
+      {:ok, property} ->
+        property
+      {:error, :stale_reference} ->
+        raise StaleReferenceError
+    end
+  end
+
+  @doc """
   Returns a boolean based on whether or not the element is selected.
 
   ## Note
@@ -203,12 +216,12 @@ defmodule Wallaby.Element do
   end
 
   @doc """
-  Matches the Element's value with the provided value.
+  Returns Element's value property.
   """
   @spec value(t) :: String.t
 
   def value(element) do
-    attr(element, "value")
+    prop(element, "value")
   end
 end
 

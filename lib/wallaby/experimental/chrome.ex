@@ -91,10 +91,10 @@ defmodule Wallaby.Experimental.Chrome do
       user_agent()
       |> Metadata.append(opts[:metadata])
 
-    capabilities = capabilities(user_agent: user_agent)
+    capabilities = %{firstMatch: [capabilities(user_agent: user_agent)], chromeOptions: chrome_options(user_agent: user_agent)}
 
     with {:ok, response} <- create_session_fn.(base_url, capabilities) do
-      id = response["sessionId"]
+      id = response["value"]["sessionId"]
 
       session = %Wallaby.Session{
         session_url: base_url <> "session/#{id}",
@@ -181,6 +181,8 @@ defmodule Wallaby.Experimental.Chrome do
   @doc false
   def attribute(element, name), do: delegate(:attribute, element, [name])
   @doc false
+  def property(element, name), do: delegate(:property, element, [name])
+  @doc false
   def click(element), do: delegate(:click, element)
   @doc false
   def hover(element), do: delegate(:hover, element)
@@ -211,6 +213,21 @@ defmodule Wallaby.Experimental.Chrome do
   end
 
   @doc false
+  def execute_script_async(session_or_element, script, args \\ [], opts \\ []) do
+    check_logs = Keyword.get(opts, :check_logs, true)
+
+    request_fn = fn ->
+      WebdriverClient.execute_script_async(session_or_element, script, args)
+    end
+
+    if check_logs do
+      check_logs!(session_or_element, request_fn)
+    else
+      request_fn.()
+    end
+  end
+
+  @doc false
   def find_elements(session_or_element, compiled_query),
     do: delegate(:find_elements, session_or_element, [compiled_query])
 
@@ -228,28 +245,17 @@ defmodule Wallaby.Experimental.Chrome do
 
   defp capabilities(opts) do
     default_capabilities()
-    |> Map.put(:chromeOptions, chrome_options(opts))
+    |> Map.put("goog:chromeOptions", chrome_options(opts))
   end
 
   defp default_capabilities do
     %{
-      javascriptEnabled: false,
-      loadImages: false,
-      version: "",
-      rotatable: false,
-      takesScreenshot: true,
-      cssSelectorsEnabled: true,
-      nativeEvents: false,
-      platform: "ANY",
-      unhandledPromptBehavior: "accept",
-      loggingPrefs: %{
-        browser: "DEBUG"
-      }
+      unhandledPromptBehavior: "accept"
     }
   end
 
   defp chrome_options(opts) do
-    %{args: chrome_args(opts)}
+    %{args: chrome_args(opts), w3c: true}
     |> put_unless_nil(:binary, chrome_binary_option())
   end
 
