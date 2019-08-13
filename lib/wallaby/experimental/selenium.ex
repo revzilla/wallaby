@@ -30,22 +30,14 @@ defmodule Wallaby.Experimental.Selenium do
   @spec start_session([start_session_opts]) :: {:ok, Session.t}
   def start_session(opts \\ []) do
     base_url = Keyword.get(opts, :remote_url, "http://localhost:4444/wd/hub/")
-    capabilities = %{
-        firstMatch: [
-          %{
-            browserName: "firefox",
-            "moz:firefoxOptions": %{
-              args: [
-                "-headless"
-              ]
-            }
-          }
-        ]
-      }
+    capabilities = Keyword.get(opts, :capabilities, %{})
     create_session_fn = Keyword.get(opts, :create_session_fn,
                                     &WebdriverClient.create_session/2)
 
-    capabilities = Map.merge(default_capabilities(), capabilities)
+    capabilities =
+      %{
+        firstMatch: [Map.merge(default_capabilities(), capabilities)]
+      }
 
     with {:ok, response} <- create_session_fn.(base_url, capabilities) do
       id = response["sessionId"] || get_in(response, ["value", "sessionId"])
@@ -196,8 +188,13 @@ defmodule Wallaby.Experimental.Selenium do
   end
 
   defp default_capabilities do
-    %{
-      javascriptEnabled: true
-    }
+        %{
+          browserName: "firefox",
+          "moz:firefoxOptions": %{
+            args: [
+              # "-headless"
+            ]
+          }
+        }
   end
 end

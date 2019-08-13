@@ -490,7 +490,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec focus_parent_frame(parent) :: {:ok, map}
   def focus_parent_frame(session) do
-    with {:ok, resp} <- request(:post, "#{session.url}/frame/parent"),
+    with {:ok, resp} <- request(:post, "#{session.url}/frame/parent", %{"dummy" => "params"}),
           {:ok, value} <- Map.fetch(resp, "value"),
       do: {:ok, value}
   end
