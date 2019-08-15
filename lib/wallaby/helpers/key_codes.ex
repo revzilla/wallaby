@@ -13,10 +13,11 @@ defmodule Wallaby.Helpers.KeyCodes do
     unicode =
       keys
       |> Enum.reduce([], fn (x, acc) -> acc ++ split_strings(x) end)
-      |> Enum.map(&"\"#{code(&1)}\"")
-      |> Enum.join(",")
 
-    "{\"value\": [#{unicode}]}"
+    encoded = unicode |> Enum.map(&"\"#{code(&1)}\"") |> Enum.join(",")
+    encoded_w3c = unicode |> Enum.map(&code(&1)) |> Enum.join("")
+
+    "{\"text\": \"#{encoded_w3c}\", \"value\": [#{encoded}]}"
   end
 
   defp split_strings(x) when is_binary(x), do: String.graphemes(x)

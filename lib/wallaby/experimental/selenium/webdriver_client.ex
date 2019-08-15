@@ -475,6 +475,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
          do: {:ok, value}
   end
 
+
   @doc """
   Retrieves logs from the browser
   """
