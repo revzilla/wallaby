@@ -1084,8 +1084,14 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClientTest do
 
       handle_request(bypass, fn conn ->
         assert conn.method == "POST"
-        assert conn.request_path == "/session/#{session.id}/click"
-        assert conn.body_params == %{"button" => 0}
+        assert conn.request_path == "/session/#{session.id}/actions"
+
+        assert conn.body_params == %{
+                 "actions" => [
+                   Client.mouse_button_event_action(:left, :down),
+                   Client.mouse_button_event_action(:left, :up)
+                 ]
+               }
 
         send_resp(conn, 200, ~s<{
           "sessionId": "#{session.id}",
@@ -1104,7 +1110,16 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClientTest do
 
       handle_request(bypass, fn conn ->
         assert conn.method == "POST"
-        assert conn.request_path == "/session/#{session.id}/doubleclick"
+        assert conn.request_path == "/session/#{session.id}/actions"
+
+        assert conn.body_params == %{
+                 "actions" => [
+                   Client.mouse_button_event_action(:left, :down),
+                   Client.mouse_button_event_action(:left, :up),
+                   Client.mouse_button_event_action(:left, :down),
+                   Client.mouse_button_event_action(:left, :up)
+                 ]
+               }
 
         send_resp(conn, 200, ~s<{
           "sessionId": "#{session.id}",
@@ -1127,12 +1142,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClientTest do
 
         assert conn.body_params == %{
                  "actions" => [
-                   %{
-                     "id" => "default mouse",
-                     "type" => "pointer",
-                     "parameters" => %{"pointerType" => "mouse"},
-                     "actions" => [%{"type" => "pointerDown", "button" => 0}]
-                   }
+                   Client.mouse_button_event_action(:left, :down)
                  ]
                }
 
@@ -1157,12 +1167,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClientTest do
 
         assert conn.body_params == %{
                  "actions" => [
-                   %{
-                     "id" => "default mouse",
-                     "type" => "pointer",
-                     "parameters" => %{"pointerType" => "mouse"},
-                     "actions" => [%{"type" => "pointerUp", "button" => 0}]
-                   }
+                   Client.mouse_button_event_action(:left, :up)
                  ]
                }
 

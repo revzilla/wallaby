@@ -141,10 +141,13 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   # Doesn't work for Firefox with middle and right mouse button
   @spec click(parent, atom) :: {:ok, map}
   def click(parent, button) when button in [:left, :middle, :right] do
-    button_mapping = %{left: 0, middle: 1, right: 2}
-
     with {:ok, resp} <-
-           request(:post, "#{parent.session_url}/click", %{button: button_mapping[button]}),
+           request(:post, "#{parent.session_url}/actions", %{
+             "actions" => [
+               mouse_button_event_action(button, :down),
+               mouse_button_event_action(button, :up)
+             ]
+           }),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -155,7 +158,14 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   @spec double_click(parent) :: {:ok, map}
   def double_click(parent) do
     with {:ok, resp} <-
-           request(:post, "#{parent.session_url}/doubleclick"),
+           request(:post, "#{parent.session_url}/actions", %{
+             "actions" => [
+               mouse_button_event_action(:left, :down),
+               mouse_button_event_action(:left, :up),
+               mouse_button_event_action(:left, :down),
+               mouse_button_event_action(:left, :up)
+             ]
+           }),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -166,17 +176,10 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   # Doesn't work for Firefox with middle and right mouse button.
   @spec button_down(parent, atom) :: {:ok, map}
   def button_down(parent, button) when button in [:left, :middle, :right] do
-    button_mapping = %{left: 0, middle: 1, right: 2}
-
     with {:ok, resp} <-
            request(:post, "#{parent.session_url}/actions", %{
              "actions" => [
-               %{
-                 "id" => "default mouse",
-                 "type" => "pointer",
-                 "parameters" => %{"pointerType" => "mouse"},
-                 "actions" => [%{"type" => "pointerDown", "button" => button_mapping[button]}]
-               }
+               mouse_button_event_action(button, :down)
              ]
            }),
          {:ok, value} <- Map.fetch(resp, "value"),
@@ -189,21 +192,32 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   # Doesn't work for Firefox with middle and right mouse button.
   @spec button_up(parent, atom) :: {:ok, map}
   def button_up(parent, button) when button in [:left, :middle, :right] do
-    button_mapping = %{left: 0, middle: 1, right: 2}
-
     with {:ok, resp} <-
            request(:post, "#{parent.session_url}/actions", %{
              "actions" => [
-               %{
-                 "id" => "default mouse",
-                 "type" => "pointer",
-                 "parameters" => %{"pointerType" => "mouse"},
-                 "actions" => [%{"type" => "pointerUp", "button" => button_mapping[button]}]
-               }
+               mouse_button_event_action(button, :up)
              ]
            }),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
+  end
+
+  def mouse_button_event_action(button, type)
+       when button in [:left, :middle, :right] and type in [:down, :up] do
+    button_mapping = %{left: 0, middle: 1, right: 2}
+
+    action_type =
+      case type do
+        :down -> "pointerDown"
+        :up -> "pointerUp"
+      end
+
+    %{
+      "id" => "default mouse",
+      "type" => "pointer",
+      "parameters" => %{"pointerType" => "mouse"},
+      "actions" => [%{"type" => action_type, "button" => button_mapping[button]}]
+    }
   end
 
   @doc """
