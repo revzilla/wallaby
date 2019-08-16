@@ -147,16 +147,6 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   end
 
   @doc """
-  Hovers over an element
-  """
-  @spec hover(Element.t) :: {:ok, map}
-  def hover(%Element{session_url: session_url, id: id}) do
-    with  {:ok, resp} <- request(:post, "#{session_url}/actions", %{"actions" => [%{"id" => "default mouse", "type" => "pointer", "parameters" => %{"pointerType" => "mouse"}, "actions" => [%{"type" => "pointerMove", "origin" => %{@web_element_identifier => id}, "x" => 0, "y" => 0}]}]}),
-          {:ok, value} <- Map.fetch(resp, "value"),
-      do: {:ok, value}
-  end
-
-  @doc """
   Double-clicks left mouse button at the current mouse coordinates.
   """
   @spec double_click(parent) :: {:ok, map}
@@ -202,20 +192,8 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
 
   Gets keyword list with element, xoffset and yoffset specified as an argument.
   """
-  @spec move_mouse_to(parent | nil, Element.t() | nil, integer | nil, integer | nil) :: {:ok, map}
-  def move_mouse_to(session, element, x_offset \\ nil, y_offset \\ nil) do
-    params =
-      %{element: element, xoffset: x_offset, yoffset: y_offset}
-      |> Enum.filter(fn {_key, value} -> not is_nil(value) end)
-      |> Enum.into(%{})
-
-    params =
-      if Map.has_key?(params, :element) do
-        Map.put(params, :element, params[:element].id)
-      else
-        params
-      end
-
+  @spec move_mouse_to(parent | nil, Element.t() | nil, integer, integer) :: {:ok, map}
+  def move_mouse_to(session, element, x_offset \\ 0, y_offset \\ 0) do
     session_url =
       if is_nil(element) do
         session.session_url
@@ -223,8 +201,15 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
         element.session_url
       end
 
-    with {:ok, resp} <-
-           request(:post, "#{session_url}/moveto", params),
+    origin =
+      cond do
+        is_nil(element) -> "pointer"
+        true -> %{@web_element_identifier => element.id}
+      end
+    
+    action = %{"type" => "pointerMove", "x" => x_offset, "y" => y_offset, "origin" => origin}
+
+      with  {:ok, resp} <- request(:post, "#{session_url}/actions", %{"actions" => [%{"id" => "default mouse", "type" => "pointer", "parameters" => %{"pointerType" => "mouse"}, "actions" => [action]}]}),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end

@@ -951,14 +951,14 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClientTest do
   end
 
   describe "move_mouse_to/4" do
-    test "sends the correct request to the server when only element is not nil", %{bypass: bypass} do
+    test "sends the correct request to the server when only element is given", %{bypass: bypass} do
       session = build_session_for_bypass(bypass)
       element = build_element_for_session(session)
 
       handle_request bypass, fn conn ->
         assert conn.method == "POST"
-        assert conn.request_path == "/session/#{session.id}/moveto"
-        assert conn.body_params == %{"element" => element.id}
+        assert conn.request_path == "/session/#{session.id}/actions"
+        assert conn.body_params == %{"actions" => [%{"id" => "default mouse", "type" => "pointer", "parameters" => %{"pointerType" => "mouse"}, "actions" => [%{"type" => "pointerMove", "x" => 0, "y" => 0, "origin" => %{@web_element_identifier => element.id}}]}]}
 
         send_resp(conn, 200, ~s<{
           "sessionId": "#{session.id}",
@@ -976,8 +976,8 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClientTest do
 
       handle_request bypass, fn conn ->
         assert conn.method == "POST"
-        assert conn.request_path == "/session/#{session.id}/moveto"
-        assert conn.body_params == %{"xoffset" => x_offset, "yoffset" => y_offset}
+        assert conn.request_path == "/session/#{session.id}/actions"
+        assert conn.body_params == %{"actions" => [%{"id" => "default mouse", "type" => "pointer", "parameters" => %{"pointerType" => "mouse"}, "actions" => [%{"type" => "pointerMove", "x" => x_offset, "y" => y_offset, "origin" => "pointer"}]}]}
 
         send_resp(conn, 200, ~s<{
           "sessionId": "#{session.id}",
@@ -996,8 +996,8 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClientTest do
 
       handle_request bypass, fn conn ->
         assert conn.method == "POST"
-        assert conn.request_path == "/session/#{session.id}/moveto"
-        assert conn.body_params == %{"element" => element.id, "xoffset" => x_offset, "yoffset" => y_offset}
+        assert conn.request_path == "/session/#{session.id}/actions"
+        assert conn.body_params == %{"actions" => [%{"id" => "default mouse", "type" => "pointer", "parameters" => %{"pointerType" => "mouse"}, "actions" => [%{"type" => "pointerMove", "x" => x_offset, "y" => y_offset, "origin" => %{@web_element_identifier => element.id}}]}]}
 
         send_resp(conn, 200, ~s<{
           "sessionId": "#{session.id}",
