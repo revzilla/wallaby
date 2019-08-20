@@ -6,6 +6,11 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   alias Wallaby.Helpers.KeyCodes
   import Wallaby.HTTPClient
 
+  is_displayed_atom =
+    File.read!("priv/is-displayed.js")
+
+  @is_displayed_atom is_displayed_atom
+
   @type http_method :: :post | :get | :delete
   @type url :: String.t()
   @type parent ::
@@ -356,6 +361,9 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
     with {:ok, resp} <- request(:get, "#{element.url}/displayed"),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
+
+  def displayed_using_atom(element) do
+    execute_script(element, "return (#{@is_displayed_atom}).apply(null, arguments);", [%{"ELEMENT" => element.id, @web_element_identifier => element.id}])
   end
 
   @doc """
