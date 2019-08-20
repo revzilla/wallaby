@@ -38,7 +38,7 @@ defmodule Wallaby.Experimental.Selenium do
       capabilities || default_capabilities()
 
     with {:ok, response} <- create_session_fn.(base_url, capabilities) do
-      id = response["value"]["sessionId"]
+      id = response["value"]["sessionId"] || response["sessionId"]
 
       session = %Wallaby.Session{
         session_url: base_url <> "session/#{id}",
