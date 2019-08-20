@@ -30,17 +30,15 @@ defmodule Wallaby.Experimental.Selenium do
   @spec start_session([start_session_opts]) :: {:ok, Session.t}
   def start_session(opts \\ []) do
     base_url = Keyword.get(opts, :remote_url, "http://localhost:4444/wd/hub/")
-    capabilities = Keyword.get(opts, :capabilities, %{})
+    capabilities = Keyword.get(opts, :capabilities, nil)
     create_session_fn = Keyword.get(opts, :create_session_fn,
                                     &WebdriverClient.create_session/2)
 
     capabilities =
-      %{
-        firstMatch: [Map.merge(default_capabilities(), capabilities)]
-      }
+      capabilities || default_capabilities()
 
     with {:ok, response} <- create_session_fn.(base_url, capabilities) do
-      id = response["sessionId"] || get_in(response, ["value", "sessionId"])
+      id = response["value"]["sessionId"]
 
       session = %Wallaby.Session{
         session_url: base_url <> "session/#{id}",
@@ -150,8 +148,28 @@ defmodule Wallaby.Experimental.Selenium do
     WebdriverClient.click(element)
   end
 
+  def click(parent, button) do
+    WebdriverClient.click(parent, button)
+  end
+
+  def button_down(parent, button) do
+    WebdriverClient.button_down(parent, button)
+  end
+
+  def button_up(parent, button) do
+    WebdriverClient.button_up(parent, button)
+  end
+
+  def double_click(parent) do
+    WebdriverClient.double_click(parent)
+  end
+
   def hover(%Element{} = element) do
-    WebdriverClient.hover(element)
+    WebdriverClient.move_mouse_to(nil, element)
+  end
+
+  def move_mouse_by(session, x_offset, y_offset) do
+    WebdriverClient.move_mouse_to(session, nil, x_offset, y_offset)
   end
 
   def displayed(%Element{} = element) do
@@ -188,13 +206,17 @@ defmodule Wallaby.Experimental.Selenium do
   end
 
   defp default_capabilities do
+    %{
+      firstMatch: [
         %{
           browserName: "firefox",
           "moz:firefoxOptions": %{
             args: [
-              # "-headless"
+              "-headless"
             ]
           }
         }
+      ]
+    }
   end
 end

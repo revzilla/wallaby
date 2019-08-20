@@ -229,7 +229,7 @@ defimpl Inspect, for: Wallaby.Element  do
   import Inspect.Algebra
 
   def inspect(element, opts) do
-    outer_html = Wallaby.Element.attr(element, "outerHTML")
+    outer_html = Wallaby.Element.prop(element, "outerHTML")
 
     concat([
       Inspect.Any.inspect(element, opts),
