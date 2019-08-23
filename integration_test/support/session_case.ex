@@ -43,12 +43,38 @@ defmodule Wallaby.Integration.SessionCase do
     end
   end
 
-  defp default_opts_for_driver("phantom"), do: []
-  defp default_opts_for_driver("selenium") do
-    []
+  defp default_opts_for_driver(driver), do: default_opts_for_driver(driver, System.get_env("USE_W3C"))
+  defp default_opts_for_driver("phantom", nil), do: []
+  defp default_opts_for_driver("selenium", nil) do
+    [
+      capabilities: %{
+        browserName: "firefox",
+        "moz:firefoxOptions": %{
+          args: ["-headless"]
+        }
+      }
+    ]
   end
-  defp default_opts_for_driver("chrome"), do: []
-  defp default_opts_for_driver(other) do
+  defp default_opts_for_driver("selenium", _use_w3c) do
+    [
+      use_w3c: true,
+      capabilities: %{
+        firstMatch: [
+          %{
+            browserName: "firefox",
+            "moz:firefoxOptions": %{
+              args: [
+                "-headless"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  end
+  defp default_opts_for_driver("chrome", nil), do: []
+  defp default_opts_for_driver("chrome", _use_w3c), do: [use_w3c: true]
+  defp default_opts_for_driver(other, _) do
     raise "Unknown value for WALLABY_DRIVER environment variable: #{other}"
   end
 end

@@ -9,6 +9,7 @@ defmodule Wallaby.Experimental.Chrome do
   alias Wallaby.{DependencyError, Metadata}
   alias Wallaby.Experimental.Chrome.{Chromedriver}
   alias Wallaby.Experimental.Selenium.WebdriverClient
+  alias Wallaby.Experimental.Selenium.W3CWebdriverClient
   import Wallaby.Driver.LogChecker
 
   @doc false
@@ -85,23 +86,34 @@ defmodule Wallaby.Experimental.Chrome do
 
   def start_session(opts) do
     {:ok, base_url} = Chromedriver.base_url()
-    create_session_fn = Keyword.get(opts, :create_session_fn, &WebdriverClient.create_session/2)
+    use_w3c = Keyword.get(opts, :use_w3c, false)
+    default_create_session_fn = if use_w3c do
+      &W3CWebdriverClient.create_session/2
+    else
+      &WebdriverClient.create_session/2
+    end
+    create_session_fn = Keyword.get(opts, :create_session_fn, default_create_session_fn)
 
     user_agent =
       user_agent()
       |> Metadata.append(opts[:metadata])
 
-    capabilities = %{firstMatch: [capabilities(user_agent: user_agent)], chromeOptions: chrome_options(user_agent: user_agent)}
+    capabilities = if use_w3c do
+      %{firstMatch: [capabilities(user_agent: user_agent, use_w3c: use_w3c)]}
+    else
+      capabilities(user_agent: user_agent)
+    end
 
     with {:ok, response} <- create_session_fn.(base_url, capabilities) do
-      id = response["value"]["sessionId"]
+      id = response["value"]["sessionId"] || response["sessionId"]
 
       session = %Wallaby.Session{
         session_url: base_url <> "session/#{id}",
         url: base_url <> "session/#{id}",
         id: id,
         driver: __MODULE__,
-        server: Chromedriver
+        server: Chromedriver,
+        use_w3c: use_w3c
       }
 
       if window_size = Keyword.get(opts, :window_size),
@@ -112,7 +124,12 @@ defmodule Wallaby.Experimental.Chrome do
   end
 
   def end_session(%Wallaby.Session{} = session, opts \\ []) do
-    end_session_fn = Keyword.get(opts, :end_session_fn, &WebdriverClient.delete_session/1)
+    default_delete_session_fn = if session.use_w3c do
+      &W3CWebdriverClient.delete_session/1
+    else
+      &WebdriverClient.delete_session/1
+    end
+    end_session_fn = Keyword.get(opts, :end_session_fn, default_delete_session_fn)
     end_session_fn.(session)
     :ok
   end
@@ -127,18 +144,25 @@ defmodule Wallaby.Experimental.Chrome do
     end
   end
 
-  defp delegate(fun, element_or_session, args \\ []) do
+  defp delegate(fun, element_or_session, args \\ [])
+  defp delegate(fun, %{use_w3c: false} = element_or_session, args) do
     check_logs!(element_or_session, fn ->
       apply(WebdriverClient, fun, [element_or_session | args])
     end)
   end
 
-  defdelegate accept_alert(session, fun), to: WebdriverClient
-  defdelegate dismiss_alert(session, fun), to: WebdriverClient
-  defdelegate accept_confirm(session, fun), to: WebdriverClient
-  defdelegate dismiss_confirm(session, fun), to: WebdriverClient
-  defdelegate accept_prompt(session, input, fun), to: WebdriverClient
-  defdelegate dismiss_prompt(session, fun), to: WebdriverClient
+  defp delegate(fun, %{use_w3c: true} = element_or_session, args) do
+    check_logs!(element_or_session, fn ->
+      apply(W3CWebdriverClient, fun, [element_or_session | args])
+    end)
+  end
+
+  def accept_alert(session, fun), do: delegate(:accept_alert, session, [fun])
+  def dismiss_alert(session, fun), do: delegate(:dismiss_alert, session, [fun])
+  def accept_confirm(session, fun), do: delegate(:accept_confirm, session, [fun])
+  def dismiss_confirm(session, fun), do: delegate(:dismiss_confirm, session, [fun])
+  def accept_prompt(session, input, fun), do: delegate(:accept_prompt, session, [input, fun])
+  def dismiss_prompt(session, fun), do: delegate(:dismiss_prompt, session, [fun])
   defdelegate parse_log(log), to: Wallaby.Experimental.Chrome.Logger
 
   @doc false
@@ -180,8 +204,6 @@ defmodule Wallaby.Experimental.Chrome do
   def visit(session, url), do: delegate(:visit, session, [url])
   @doc false
   def attribute(element, name), do: delegate(:attribute, element, [name])
-  # @doc false
-  # def property(element, name), do: delegate(:property, element, [name])
   @doc false
   def click(element), do: delegate(:click, element)
   @doc false
@@ -211,9 +233,16 @@ defmodule Wallaby.Experimental.Chrome do
   def execute_script(session_or_element, script, args \\ [], opts \\ []) do
     check_logs = Keyword.get(opts, :check_logs, true)
 
-    request_fn = fn ->
-      WebdriverClient.execute_script(session_or_element, script, args)
-    end
+    request_fn =
+      if session_or_element.use_w3c do
+        fn ->
+          W3CWebdriverClient.execute_script(session_or_element, script, args)
+        end
+      else
+        fn ->
+          WebdriverClient.execute_script(session_or_element, script, args)
+        end
+      end
 
     if check_logs do
       check_logs!(session_or_element, request_fn)
@@ -226,9 +255,17 @@ defmodule Wallaby.Experimental.Chrome do
   def execute_script_async(session_or_element, script, args \\ [], opts \\ []) do
     check_logs = Keyword.get(opts, :check_logs, true)
 
-    request_fn = fn ->
-      WebdriverClient.execute_script_async(session_or_element, script, args)
-    end
+
+    request_fn =
+      if session_or_element.use_w3c do
+        fn ->
+          W3CWebdriverClient.execute_script_async(session_or_element, script, args)
+        end
+      else
+        fn ->
+          WebdriverClient.execute_script_async(session_or_element, script, args)
+        end
+      end
 
     if check_logs do
       check_logs!(session_or_element, request_fn)
@@ -246,7 +283,7 @@ defmodule Wallaby.Experimental.Chrome do
   @doc false
   def take_screenshot(session_or_element), do: delegate(:take_screenshot, session_or_element)
   @doc false
-  defdelegate log(session_or_element), to: WebdriverClient
+  def log(session_or_element), do: delegate(:log, session_or_element)
 
   @doc false
   def user_agent do
@@ -265,7 +302,8 @@ defmodule Wallaby.Experimental.Chrome do
   end
 
   defp chrome_options(opts) do
-    %{args: chrome_args(opts), w3c: true}
+    use_w3c = Keyword.get(opts, :use_w3c, false)
+    %{args: chrome_args(opts), w3c: use_w3c}
     |> put_unless_nil(:binary, chrome_binary_option())
   end
 

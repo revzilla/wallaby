@@ -4,8 +4,9 @@ defmodule Wallaby.Experimental.Selenium do
 
   @behaviour Wallaby.Driver
 
-  alias Wallaby.{Driver, Element, Session}
+  alias Wallaby.{Element, Session}
   alias Wallaby.Experimental.Selenium.WebdriverClient
+  alias Wallaby.Experimental.Selenium.W3CWebdriverClient
 
   @type start_session_opts ::
     {:remote_url, String.t} |
@@ -29,13 +30,18 @@ defmodule Wallaby.Experimental.Selenium do
 
   @spec start_session([start_session_opts]) :: {:ok, Session.t}
   def start_session(opts \\ []) do
+    use_w3c = Keyword.get(opts, :use_w3c, false)
     base_url = Keyword.get(opts, :remote_url, "http://localhost:4444/wd/hub/")
     capabilities = Keyword.get(opts, :capabilities, nil)
-    create_session_fn = Keyword.get(opts, :create_session_fn,
-                                    &WebdriverClient.create_session/2)
+    default_create_session_fn = if use_w3c do
+      &W3CWebdriverClient.create_session/2
+    else
+      &WebdriverClient.create_session/2
+    end
+    create_session_fn = Keyword.get(opts, :create_session_fn, default_create_session_fn)
 
     capabilities =
-      capabilities || default_capabilities()
+      capabilities || default_capabilities(use_w3c)
 
     with {:ok, response} <- create_session_fn.(base_url, capabilities) do
       id = response["value"]["sessionId"] || response["sessionId"]
@@ -44,7 +50,8 @@ defmodule Wallaby.Experimental.Selenium do
         session_url: base_url <> "session/#{id}",
         url: base_url <> "session/#{id}",
         id: id,
-        driver: __MODULE__
+        driver: __MODULE__,
+        use_w3c: use_w3c
       }
 
       if window_size = Keyword.get(opts, :window_size),
@@ -62,8 +69,12 @@ defmodule Wallaby.Experimental.Selenium do
   """
   @spec end_session(Session.t, [end_session_opts]) :: :ok
   def end_session(session, opts \\ []) do
-    end_session_fn =
-      Keyword.get(opts, :end_session_fn, &WebdriverClient.delete_session/1)
+    default_delete_session_fn = if session.use_w3c do
+      &W3CWebdriverClient.delete_session/1
+    else
+      &WebdriverClient.delete_session/1
+    end
+    end_session_fn = Keyword.get(opts, :end_session_fn, default_delete_session_fn)
 
     end_session_fn.(session)
     :ok
@@ -78,145 +89,121 @@ defmodule Wallaby.Experimental.Selenium do
     end
   end
 
-  defdelegate window_handle(session), to: WebdriverClient
-  defdelegate window_handles(session), to: WebdriverClient
-  defdelegate focus_window(session, window_handle), to: WebdriverClient
-  defdelegate close_window(session), to: WebdriverClient
-  defdelegate get_window_size(session), to: WebdriverClient
-  defdelegate set_window_size(session, width, height), to: WebdriverClient
-  defdelegate get_window_position(session), to: WebdriverClient
-  defdelegate set_window_position(session, x, y), to: WebdriverClient
-  defdelegate maximize_window(session), to: WebdriverClient
+  def window_handle(%{use_w3c: true} = session), do: W3CWebdriverClient.window_handle(session)
+  def window_handle(%{use_w3c: false} = session), do: WebdriverClient.window_handle(session)
+  def window_handles(%{use_w3c: true} = session), do: W3CWebdriverClient.window_handles(session)
+  def window_handles(%{use_w3c: false} = session), do: WebdriverClient.window_handles(session)
+  def focus_window(%{use_w3c: true} = session, window_handle), do: W3CWebdriverClient.focus_window(session, window_handle)
+  def focus_window(%{use_w3c: false} = session, window_handle), do: WebdriverClient.focus_window(session, window_handle)
+  def close_window(%{use_w3c: true} = session), do: W3CWebdriverClient.close_window(session)
+  def close_window(%{use_w3c: false} = session), do: WebdriverClient.close_window(session)
+  def get_window_size(%{use_w3c: true} = session), do: W3CWebdriverClient.get_window_size(session)
+  def get_window_size(%{use_w3c: false} = session), do: WebdriverClient.get_window_size(session)
+  def set_window_size(%{use_w3c: true} = session, width, height), do: W3CWebdriverClient.set_window_size(session, width, height)
+  def set_window_size(%{use_w3c: false} = session, width, height), do: WebdriverClient.set_window_size(session, width, height)
+  def get_window_position(%{use_w3c: true} = session), do: W3CWebdriverClient.get_window_position(session)
+  def get_window_position(%{use_w3c: false} = session), do: WebdriverClient.get_window_position(session)
+  def set_window_position(%{use_w3c: true} = session, x, y), do: W3CWebdriverClient.set_window_position(session, x, y)
+  def set_window_position(%{use_w3c: false} = session, x, y), do: WebdriverClient.set_window_position(session, x, y)
+  def maximize_window(%{use_w3c: true} = session), do: W3CWebdriverClient.maximize_window(session)
+  def maximize_window(%{use_w3c: false} = session), do: WebdriverClient.maximize_window(session)
+  def focus_frame(%{use_w3c: true} = session, frame), do: W3CWebdriverClient.focus_frame(session, frame)
+  def focus_frame(%{use_w3c: false} = session, frame), do: WebdriverClient.focus_frame(session, frame)
+  def focus_parent_frame(%{use_w3c: true} = session), do: W3CWebdriverClient.focus_parent_frame(session)
+  def focus_parent_frame(%{use_w3c: false} = session), do: WebdriverClient.focus_parent_frame(session)
+  def accept_alert(%{use_w3c: true} = session, fun), do: W3CWebdriverClient.accept_alert(session, fun)
+  def accept_alert(%{use_w3c: false} = session, fun), do: WebdriverClient.accept_alert(session, fun)
+  def dismiss_alert(%{use_w3c: true} = session, fun), do: W3CWebdriverClient.dismiss_alert(session, fun)
+  def dismiss_alert(%{use_w3c: false} = session, fun), do: WebdriverClient.dismiss_alert(session, fun)
+  def accept_confirm(%{use_w3c: true} = session, fun), do: W3CWebdriverClient.accept_confirm(session, fun)
+  def accept_confirm(%{use_w3c: false} = session, fun), do: WebdriverClient.accept_confirm(session, fun)
+  def dismiss_confirm(%{use_w3c: true} = session, fun), do: W3CWebdriverClient.dismiss_confirm(session, fun)
+  def dismiss_confirm(%{use_w3c: false} = session, fun), do: WebdriverClient.dismiss_confirm(session, fun)
+  def accept_prompt(%{use_w3c: true} = session, input, fun), do: W3CWebdriverClient.accept_prompt(session, input, fun)
+  def accept_prompt(%{use_w3c: false} = session, input, fun), do: WebdriverClient.accept_prompt(session, input, fun)
+  def dismiss_prompt(%{use_w3c: true} = session, fun), do: W3CWebdriverClient.dismiss_prompt(session, fun)
+  def dismiss_prompt(%{use_w3c: false} = session, fun), do: WebdriverClient.dismiss_prompt(session, fun)
+  def take_screenshot(%{use_w3c: true} = session_or_element), do: W3CWebdriverClient.take_screenshot(session_or_element)
+  def take_screenshot(%{use_w3c: false} = session_or_element), do: WebdriverClient.take_screenshot(session_or_element)
+  def cookies(%Session{use_w3c: true} = session), do: W3CWebdriverClient.cookies(session)
+  def cookies(%Session{use_w3c: false} = session), do: WebdriverClient.cookies(session)
 
-  defdelegate focus_frame(session, frame), to: WebdriverClient
-  defdelegate focus_parent_frame(session), to: WebdriverClient
-
-  defdelegate accept_alert(session, fun), to: WebdriverClient
-  defdelegate dismiss_alert(session, fun), to: WebdriverClient
-  defdelegate accept_confirm(session, fun), to: WebdriverClient
-  defdelegate dismiss_confirm(session, fun), to: WebdriverClient
-  defdelegate accept_prompt(session, input, fun), to: WebdriverClient
-  defdelegate dismiss_prompt(session, fun), to: WebdriverClient
-
-  defdelegate take_screenshot(session_or_element), to: WebdriverClient
-
-  def cookies(%Session{} = session) do
-    WebdriverClient.cookies(session)
+  def current_path(%Session{use_w3c: true} = session) do
+    with  {:ok, url} <- W3CWebdriverClient.current_url(session),
+          uri <- URI.parse(url),
+          {:ok, path} <- Map.fetch(uri, :path),
+      do: {:ok, path}
   end
-
-  def current_path(%Session{} = session) do
+  def current_path(%Session{use_w3c: false} = session) do
     with  {:ok, url} <- WebdriverClient.current_url(session),
           uri <- URI.parse(url),
           {:ok, path} <- Map.fetch(uri, :path),
       do: {:ok, path}
   end
 
-  def current_url(%Session{} = session) do
-    WebdriverClient.current_url(session)
-  end
+  def current_url(%Session{use_w3c: true} = session), do: W3CWebdriverClient.current_url(session)
+  def current_url(%Session{use_w3c: false} = session), do: WebdriverClient.current_url(session)
+  def page_source(%Session{use_w3c: true} = session), do: W3CWebdriverClient.page_source(session)
+  def page_source(%Session{use_w3c: false} = session), do: WebdriverClient.page_source(session)
+  def page_title(%Session{use_w3c: true} = session), do: W3CWebdriverClient.page_title(session)
+  def page_title(%Session{use_w3c: false} = session), do: WebdriverClient.page_title(session)
+  def set_cookie(%Session{use_w3c: true} = session, key, value), do: W3CWebdriverClient.set_cookie(session, key, value)
+  def set_cookie(%Session{use_w3c: false} = session, key, value), do: WebdriverClient.set_cookie(session, key, value)
+  def visit(%Session{use_w3c: true} = session, path), do: W3CWebdriverClient.visit(session, path)
+  def visit(%Session{use_w3c: false} = session, path), do: WebdriverClient.visit(session, path)
+  def attribute(%Element{use_w3c: true} = element, name), do: W3CWebdriverClient.attribute(element, name)
+  def attribute(%Element{use_w3c: false} = element, name), do: WebdriverClient.attribute(element, name)
+  def clear(%Element{use_w3c: true} = element), do: W3CWebdriverClient.clear(element)
+  def clear(%Element{use_w3c: false} = element), do: WebdriverClient.clear(element)
+  def click(%Element{use_w3c: true} = element), do: W3CWebdriverClient.click(element)
+  def click(%Element{use_w3c: false} = element), do: WebdriverClient.click(element)
+  def click(%{use_w3c: true} = parent, button), do: W3CWebdriverClient.click(parent, button)
+  def click(%{use_w3c: false} = parent, button), do: WebdriverClient.click(parent, button)
+  def button_down(%{use_w3c: true} = parent, button), do: W3CWebdriverClient.button_down(parent, button)
+  def button_down(%{use_w3c: false} = parent, button), do: WebdriverClient.button_down(parent, button)
+  def button_up(%{use_w3c: true} = parent, button), do: W3CWebdriverClient.button_up(parent, button)
+  def button_up(%{use_w3c: false} = parent, button), do: WebdriverClient.button_up(parent, button)
+  def double_click(%{use_w3c: true} = parent), do: W3CWebdriverClient.double_click(parent)
+  def double_click(%{use_w3c: false} = parent), do: WebdriverClient.double_click(parent)
+  def hover(%Element{use_w3c: true} = element), do: W3CWebdriverClient.move_mouse_to(nil, element)
+  def hover(%Element{use_w3c: false} = element), do: WebdriverClient.move_mouse_to(nil, element)
+  def move_mouse_by(%{use_w3c: true} = session, x_offset, y_offset), do: W3CWebdriverClient.move_mouse_to(session, nil, x_offset, y_offset)
+  def move_mouse_by(%{use_w3c: false} = session, x_offset, y_offset), do: WebdriverClient.move_mouse_to(session, nil, x_offset, y_offset)
+  def displayed(%Element{use_w3c: true} = element), do: W3CWebdriverClient.displayed(element)
+  def displayed(%Element{use_w3c: false} = element), do: WebdriverClient.displayed(element)
+  def selected(%Element{use_w3c: true} = element), do: W3CWebdriverClient.selected(element)
+  def selected(%Element{use_w3c: false} = element), do: WebdriverClient.selected(element)
+  def set_value(%Element{use_w3c: true} = element, value), do: W3CWebdriverClient.set_value(element, value)
+  def set_value(%Element{use_w3c: false} = element, value), do: WebdriverClient.set_value(element, value)
+  def text(%Element{use_w3c: true} = element), do: W3CWebdriverClient.text(element)
+  def text(%Element{use_w3c: false} = element), do: WebdriverClient.text(element)
+  def find_elements(%{use_w3c: true} = parent, compiled_query), do: W3CWebdriverClient.find_elements(parent, compiled_query)
+  def find_elements(%{use_w3c: false} = parent, compiled_query), do: WebdriverClient.find_elements(parent, compiled_query)
+  def execute_script(parent, script, arguments \\ [])
+  def execute_script(%{use_w3c: true} = parent, script, arguments), do: W3CWebdriverClient.execute_script(parent, script, arguments)
+  def execute_script(%{use_w3c: false} = parent, script, arguments), do: WebdriverClient.execute_script(parent, script, arguments)
+  def execute_script_async(parent, script, arguments \\ [])
+  def execute_script_async(%{use_w3c: true} = parent, script, arguments), do: W3CWebdriverClient.execute_script_async(parent, script, arguments)
+  def execute_script_async(%{use_w3c: false} = parent, script, arguments), do: WebdriverClient.execute_script_async(parent, script, arguments)
+  def send_keys(%{use_w3c: true} = parent, keys), do: W3CWebdriverClient.send_keys(parent, keys)
+  def send_keys(%{use_w3c: false} = parent, keys), do: WebdriverClient.send_keys(parent, keys)
 
-  def page_source(%Session{} = session) do
-    WebdriverClient.page_source(session)
-  end
-
-  def page_title(%Session{} = session) do
-    WebdriverClient.page_title(session)
-  end
-
-  def set_cookie(%Session{} = session, key, value) do
-    WebdriverClient.set_cookie(session, key, value)
-  end
-
-  def visit(%Session{} = session, path) do
-    WebdriverClient.visit(session, path)
-  end
-
-  def attribute(%Element{} = element, name) do
-    WebdriverClient.attribute(element, name)
-  end
-
-  # def property(%Element{} = element, name) do
-  #   WebdriverClient.property(element, name)
-  # end
-
-  @spec clear(Element.t) :: {:ok, nil} | {:error, Driver.reason}
-  def clear(%Element{} = element) do
-    WebdriverClient.clear(element)
-  end
-
-  def click(%Element{} = element) do
-    WebdriverClient.click(element)
-  end
-
-  def click(parent, button) do
-    WebdriverClient.click(parent, button)
-  end
-
-  def button_down(parent, button) do
-    WebdriverClient.button_down(parent, button)
-  end
-
-  def button_up(parent, button) do
-    WebdriverClient.button_up(parent, button)
-  end
-
-  def double_click(parent) do
-    WebdriverClient.double_click(parent)
-  end
-
-  def hover(%Element{} = element) do
-    WebdriverClient.move_mouse_to(nil, element)
-  end
-
-  def move_mouse_by(session, x_offset, y_offset) do
-    WebdriverClient.move_mouse_to(session, nil, x_offset, y_offset)
-  end
-
-  def displayed(%Element{} = element) do
-    WebdriverClient.displayed(element)
-  end
-
-  def selected(%Element{} = element) do
-    WebdriverClient.selected(element)
-  end
-
-  @spec set_value(Element.t, String.t) :: {:ok, nil} | {:error, Driver.reason}
-  def set_value(%Element{} = element, value) do
-    WebdriverClient.set_value(element, value)
-  end
-
-  def text(%Element{} = element) do
-    WebdriverClient.text(element)
-  end
-
-  def find_elements(parent, compiled_query) do
-    WebdriverClient.find_elements(parent, compiled_query)
-  end
-
-  def execute_script(parent, script, arguments \\ []) do
-    WebdriverClient.execute_script(parent, script, arguments)
-  end
-
-  def execute_script_async(parent, script, arguments \\ []) do
-    WebdriverClient.execute_script_async(parent, script, arguments)
-  end
-
-  def send_keys(parent, keys) do
-    WebdriverClient.send_keys(parent, keys)
-  end
-
-  defp default_capabilities do
+  defp default_capabilities(true = _use_w3c) do
     %{
       firstMatch: [
-        %{
-          browserName: "firefox",
-          "moz:firefoxOptions": %{
-            args: [
-              "-headless"
-            ]
-          }
-        }
+        default_capabilities(false)
       ]
+    }
+  end
+
+  defp default_capabilities(false = _use_w3c) do
+    %{
+      browserName: "firefox",
+      "moz:firefoxOptions": %{
+        args: [
+          "-headless"
+        ]
+      }
     }
   end
 end

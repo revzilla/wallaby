@@ -1,10 +1,14 @@
-defmodule Wallaby.Experimental.Selenium.WebdriverClient do
+defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
   @moduledoc false
-  # Client implementation for the WebDriver Wire Protocol
-  # documented on https://github.com/SeleniumHQ/selenium/wiki/JsonWireProtocol
+  # Client implementation for the W3C WebDriver Protocol
+  # documented on https://w3c.github.io/webdriver/
   alias Wallaby.{Driver, Element, Query, Session}
   alias Wallaby.Helpers.KeyCodes
   import Wallaby.HTTPClient
+
+  is_displayed_atom = File.read!("priv/is-displayed.js")
+
+  @is_displayed_atom is_displayed_atom
 
   @type http_method :: :post | :get | :delete
   @type url :: String.t()
@@ -19,7 +23,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec create_session(String.t(), map) :: {:ok, map}
   def create_session(base_url, capabilities) do
-    params = %{desiredCapabilities: capabilities}
+    params = %{capabilities: capabilities}
 
     request(:post, "#{base_url}session", params)
   end
@@ -49,7 +53,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec set_value(Element.t(), String.t()) :: {:ok, nil} | {:error, Driver.reason()}
   def set_value(%Element{url: url}, value) do
-    case request(:post, "#{url}/value", %{value: [value]}) do
+    case request(:post, "#{url}/value", %{text: value}) do
       {:ok, resp} -> {:ok, Map.get(resp, "value")}
       {:error, reason} -> {:error, reason}
     end
@@ -59,8 +63,8 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   Clears the value in an element
   """
   @spec clear(Element.t()) :: {:ok, nil} | {:error, Driver.reason()}
-  def clear(%Element{url: url}) do
-    case request(:post, "#{url}/clear") do
+  def clear(%Element{url: url, id: id}) do
+    case request(:post, "#{url}/clear", %{id: id}) do
       {:ok, resp} -> {:ok, Map.get(resp, "value")}
       {:error, reason} -> {:error, reason}
     end
@@ -73,7 +77,9 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
     fun.(session)
 
     with {:ok, value} <- alert_text(session),
-         {:ok, _r} <- request(:post, "#{session.url}/accept_alert"),
+         # We're passing dummy params because selenium (?) complains when we don't send any params
+         # ¯\_(ツ)_/¯
+         {:ok, _r} <- request(:post, "#{session.url}/alert/accept", %{"dummy" => "param"}),
          do: value
   end
 
@@ -92,7 +98,9 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
     fun.(session)
 
     with {:ok, value} <- alert_text(session),
-         {:ok, _r} <- request(:post, "#{session.url}/dismiss_alert"),
+         # We're passing dummy params because selenium (?) complains when we don't send any params
+         # ¯\_(ツ)_/¯
+         {:ok, _r} <- request(:post, "#{session.url}/alert/dismiss", %{"dummy" => "param"}),
          do: value
   end
 
@@ -100,16 +108,20 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
     fun.(session)
 
     with {:ok, value} <- alert_text(session),
-         {:ok, _r} <- request(:post, "#{session.url}/accept_alert"),
+         # We're passing dummy params because selenium (?) complains when we don't send any params
+         # ¯\_(ツ)_/¯
+         {:ok, _r} <- request(:post, "#{session.url}/alert/accept", %{"dummy" => "param"}),
          do: value
   end
 
   def accept_prompt(session, input, fun) do
     fun.(session)
 
-    with {:ok, _r} <- request(:post, "#{session.url}/alert_text", %{text: input}),
+    with {:ok, _r} <- request(:post, "#{session.url}/alert/text", %{text: input}),
          {:ok, value} <- alert_text(session),
-         {:ok, _r} <- request(:post, "#{session.url}/accept_alert"),
+         # We're passing dummy params because selenium (?) complains when we don't send any params
+         # ¯\_(ツ)_/¯
+         {:ok, _r} <- request(:post, "#{session.url}/alert/accept", %{"dummy" => "param"}),
          do: value
   end
 
@@ -121,8 +133,8 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   Clicks an element.
   """
   @spec click(Element.t()) :: {:ok, map}
-  def click(%Element{url: url}) do
-    with {:ok, resp} <- request(:post, "#{url}/click"),
+  def click(%Element{url: url, id: id}) do
+    with {:ok, resp} <- request(:post, "#{url}/click", %{id: id}),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -133,10 +145,13 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   # Doesn't work for Firefox with middle and right mouse button
   @spec click(parent, atom) :: {:ok, map}
   def click(parent, button) when button in [:left, :middle, :right] do
-    button_mapping = %{left: 0, middle: 1, right: 2}
-
     with {:ok, resp} <-
-           request(:post, "#{parent.session_url}/click", %{button: button_mapping[button]}),
+           request(:post, "#{parent.session_url}/actions", %{
+             "actions" => [
+               mouse_button_event_action(button, :down),
+               mouse_button_event_action(button, :up)
+             ]
+           }),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -147,7 +162,14 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   @spec double_click(parent) :: {:ok, map}
   def double_click(parent) do
     with {:ok, resp} <-
-           request(:post, "#{parent.session_url}/doubleclick"),
+           request(:post, "#{parent.session_url}/actions", %{
+             "actions" => [
+               mouse_button_event_action(:left, :down),
+               mouse_button_event_action(:left, :up),
+               mouse_button_event_action(:left, :down),
+               mouse_button_event_action(:left, :up)
+             ]
+           }),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -158,10 +180,12 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   # Doesn't work for Firefox with middle and right mouse button.
   @spec button_down(parent, atom) :: {:ok, map}
   def button_down(parent, button) when button in [:left, :middle, :right] do
-    button_mapping = %{left: 0, middle: 1, right: 2}
-
     with {:ok, resp} <-
-           request(:post, "#{parent.session_url}/buttondown", %{button: button_mapping[button]}),
+           request(:post, "#{parent.session_url}/actions", %{
+             "actions" => [
+               mouse_button_event_action(button, :down)
+             ]
+           }),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -172,12 +196,32 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   # Doesn't work for Firefox with middle and right mouse button.
   @spec button_up(parent, atom) :: {:ok, map}
   def button_up(parent, button) when button in [:left, :middle, :right] do
-    button_mapping = %{left: 0, middle: 1, right: 2}
-
     with {:ok, resp} <-
-           request(:post, "#{parent.session_url}/buttonup", %{button: button_mapping[button]}),
+           request(:post, "#{parent.session_url}/actions", %{
+             "actions" => [
+               mouse_button_event_action(button, :up)
+             ]
+           }),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
+  end
+
+  def mouse_button_event_action(button, type)
+      when button in [:left, :middle, :right] and type in [:down, :up] do
+    button_mapping = %{left: 0, middle: 1, right: 2}
+
+    action_type =
+      case type do
+        :down -> "pointerDown"
+        :up -> "pointerUp"
+      end
+
+    %{
+      "id" => "default mouse",
+      "type" => "pointer",
+      "parameters" => %{"pointerType" => "mouse"},
+      "actions" => [%{"type" => action_type, "button" => button_mapping[button]}]
+    }
   end
 
   @doc """
@@ -187,20 +231,8 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
 
   Gets keyword list with element, xoffset and yoffset specified as an argument.
   """
-  @spec move_mouse_to(parent | nil, Element.t() | nil, integer | nil, integer | nil) :: {:ok, map}
-  def move_mouse_to(session, element, x_offset \\ nil, y_offset \\ nil) do
-    params =
-      %{element: element, xoffset: x_offset, yoffset: y_offset}
-      |> Enum.filter(fn {_key, value} -> not is_nil(value) end)
-      |> Enum.into(%{})
-
-    params =
-      if Map.has_key?(params, :element) do
-        Map.put(params, :element, params[:element].id)
-      else
-        params
-      end
-
+  @spec move_mouse_to(parent | nil, Element.t() | nil, integer, integer) :: {:ok, map}
+  def move_mouse_to(session, element, x_offset \\ 0, y_offset \\ 0) do
     session_url =
       if is_nil(element) do
         session.session_url
@@ -208,8 +240,25 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
         element.session_url
       end
 
+    origin =
+      cond do
+        is_nil(element) -> "pointer"
+        true -> %{@web_element_identifier => element.id}
+      end
+
+    action = %{"type" => "pointerMove", "x" => x_offset, "y" => y_offset, "origin" => origin}
+
     with {:ok, resp} <-
-           request(:post, "#{session_url}/moveto", params),
+           request(:post, "#{session_url}/actions", %{
+             "actions" => [
+               %{
+                 "id" => "default mouse",
+                 "type" => "pointer",
+                 "parameters" => %{"pointerType" => "mouse"},
+                 "actions" => [action]
+               }
+             ]
+           }),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -239,6 +288,23 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec attribute(Element.t(), String.t()) :: {:ok, String.t()}
   def attribute(element, name) do
+    with {:ok, resp} <- request(:get, "#{element.url}/property/#{name}"),
+         {:ok, value} <- Map.fetch(resp, "value") do
+          if value do
+            {:ok, value}
+          else
+            attribute_fallback(element, name)
+          end
+         end
+  end
+
+  @doc """
+  Gets the value of an elements attribute
+
+  This is a fallback for when Firefox doesn't return with attribute under property endpoint
+  """
+  @spec attribute_fallback(Element.t(), String.t()) :: {:ok, String.t()}
+  def attribute_fallback(element, name) do
     with {:ok, resp} <- request(:get, "#{element.url}/attribute/#{name}"),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
@@ -308,9 +374,23 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec displayed(Element.t()) :: {:ok, boolean} | {:error, :stale_reference}
   def displayed(element) do
+    if Application.get_env(:wallaby, :use_element_displayed_atom) do
+      displayed_using_atom(element)
+    else
+      displayed_using_endpoint(element)
+    end
+  end
+
+  defp displayed_using_endpoint(element) do
     with {:ok, resp} <- request(:get, "#{element.url}/displayed"),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
+  end
+
+  defp displayed_using_atom(element) do
+    execute_script(element, "return (#{@is_displayed_atom}).apply(null, arguments);", [
+      %{"ELEMENT" => element.id, @web_element_identifier => element.id}
+    ])
   end
 
   @doc """
@@ -375,7 +455,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   @spec set_window_size(parent, non_neg_integer, non_neg_integer) :: {:ok, map}
   def set_window_size(session, width, height) do
     with {:ok, resp} <-
-           request(:post, "#{session.url}/window/current/size", %{width: width, height: height}),
+           request(:post, "#{session.url}/window/rect", %{width: width, height: height}),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -385,7 +465,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec get_window_size(parent) :: {:ok, map}
   def get_window_size(session) do
-    with {:ok, resp} <- request(:get, "#{session.url}/window/current/size"),
+    with {:ok, resp} <- request(:get, "#{session.url}/window/rect"),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -396,10 +476,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   @spec set_window_position(parent, non_neg_integer, non_neg_integer) :: {:ok, map}
   def set_window_position(session, x_coordinate, y_coordinate) do
     with {:ok, resp} <-
-           request(:post, "#{session.url}/window/current/position", %{
-             x: x_coordinate,
-             y: y_coordinate
-           }),
+           request(:post, "#{session.url}/window/rect", %{x: x_coordinate, y: y_coordinate}),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -409,7 +486,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec get_window_position(parent) :: {:ok, map}
   def get_window_position(session) do
-    with {:ok, resp} <- request(:get, "#{session.url}/window/current/position"),
+    with {:ok, resp} <- request(:get, "#{session.url}/window/rect"),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -419,7 +496,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec maximize_window(parent) :: {:ok, map}
   def maximize_window(session) do
-    with {:ok, resp} <- request(:post, "#{session.url}/window/current/maximize"),
+    with {:ok, resp} <- request(:post, "#{session.url}/window/maximize"),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -431,7 +508,10 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   @spec execute_script(Session.t() | Element.t(), String.t(), Keyword.t()) :: {:ok, any}
   def execute_script(session, script, arguments \\ []) do
     with {:ok, resp} <-
-           request(:post, "#{session.session_url}/execute", %{script: script, args: arguments}),
+           request(:post, "#{session.session_url}/execute/sync", %{
+             script: script,
+             args: arguments
+           }),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -440,15 +520,19 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   Executes asynchronous javascript, taking as arguments the script to execute,
   and optionally a list of arguments available in the script via `arguments`
   """
-  @spec execute_script_async(Session.t | Element.t, String.t, Keyword.t) :: {:ok, any}
+  @spec execute_script_async(Session.t() | Element.t(), String.t(), Keyword.t()) :: {:ok, any}
   def execute_script_async(session, script, arguments \\ []) do
-    with {:ok, resp} <- request(:post, "#{session.session_url}/execute_async", %{script: script, args: arguments}),
-          {:ok, value} <- Map.fetch(resp, "value"),
-      do: {:ok, value}
+    with {:ok, resp} <-
+           request(:post, "#{session.session_url}/execute/async", %{
+             script: script,
+             args: arguments
+           }),
+         {:ok, value} <- Map.fetch(resp, "value"),
+         do: {:ok, value}
   end
 
   @doc """
-  Sends a list of key strokes to active element.
+  Sends a list of key strokes to active element
   """
   @spec send_keys(Session.t(), [String.t() | atom]) :: {:ok, nil}
   def send_keys(%Session{} = session, keys) when is_list(keys) do
@@ -490,7 +574,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec window_handles(parent) :: {:ok, list(String.t())}
   def window_handles(session) do
-    with {:ok, resp} <- request(:get, "#{session.url}/window_handles"),
+    with {:ok, resp} <- request(:get, "#{session.url}/window/handles"),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -500,7 +584,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec window_handle(parent) :: {:ok, String.t()}
   def window_handle(session) do
-    with {:ok, resp} <- request(:get, "#{session.url}/window_handle"),
+    with {:ok, resp} <- request(:get, "#{session.url}/window"),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -569,7 +653,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec focus_parent_frame(parent) :: {:ok, map}
   def focus_parent_frame(session) do
-    with {:ok, resp} <- request(:post, "#{session.url}/frame/parent"),
+    with {:ok, resp} <- request(:post, "#{session.url}/frame/parent", %{"dummy" => "params"}),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -600,7 +684,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   # Retrieves the text from an alert, prompt or confirm.
   @spec alert_text(Session.t()) :: {:ok, String.t()}
   defp alert_text(session) do
-    with {:ok, resp} <- request(:get, "#{session.url}/alert_text"),
+    with {:ok, resp} <- request(:get, "#{session.url}/alert/text"),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
