@@ -28,7 +28,7 @@ defmodule Wallaby.Element do
   alias Wallaby.InvalidSelectorError
   alias Wallaby.StaleReferenceError
 
-  defstruct [:url, :session_url, :parent, :id, :driver, screenshots: []]
+  defstruct [:url, :session_url, :parent, :id, :driver, screenshots: [], use_w3c: false]
 
   @type value :: String.t
                | number()
@@ -42,6 +42,7 @@ defmodule Wallaby.Element do
     id: String.t,
     screenshots: list,
     driver: module,
+    use_w3c: boolean
   }
 
   @doc """
@@ -136,19 +137,6 @@ defmodule Wallaby.Element do
     end
   end
 
-  # @doc """
-  # Gets the value of the element's property.
-  # """
-  # @spec prop(t, attr()) :: String.t | nil
-  # def prop(%__MODULE__{driver: driver} = element, name) do
-  #   case driver.property(element, name) do
-  #     {:ok, property} ->
-  #       property
-  #     {:error, :stale_reference} ->
-  #       raise StaleReferenceError
-  #   end
-  # end
-
   @doc """
   Returns a boolean based on whether or not the element is selected.
 
@@ -216,7 +204,7 @@ defmodule Wallaby.Element do
   end
 
   @doc """
-  Returns Element's value property.
+  Matches the Element's value with the provided value.
   """
   @spec value(t) :: String.t
 
