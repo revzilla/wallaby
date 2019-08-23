@@ -98,11 +98,8 @@ defmodule Wallaby.Experimental.Chrome do
       user_agent()
       |> Metadata.append(opts[:metadata])
 
-    capabilities = if use_w3c do
-      %{firstMatch: [capabilities(user_agent: user_agent, use_w3c: use_w3c)]}
-    else
-      capabilities(user_agent: user_agent)
-    end
+    capabilities =
+      capabilities(user_agent: user_agent, use_w3c: use_w3c)
 
     with {:ok, response} <- create_session_fn.(base_url, capabilities) do
       id = response["value"]["sessionId"] || response["sessionId"]

@@ -23,7 +23,7 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
   """
   @spec create_session(String.t(), map) :: {:ok, map}
   def create_session(base_url, capabilities) do
-    params = %{capabilities: capabilities}
+    params = %{capabilities: %{firstMatch: [capabilities]}}
 
     request(:post, "#{base_url}session", params)
   end

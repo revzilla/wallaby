@@ -21,6 +21,13 @@ defmodule Wallaby.Integration.SessionCase do
       |> default_opts_for_driver
       |> Keyword.merge(opts)
 
+    session_opts =
+      if System.get_env("USE_W3C") do
+        Keyword.put(session_opts, :use_w3c, true)
+      else
+        session_opts
+      end
+
     with {:ok, session} <- retry(2, fn -> Wallaby.start_session(session_opts) end),
       do: {:ok, session}
   end
@@ -43,9 +50,8 @@ defmodule Wallaby.Integration.SessionCase do
     end
   end
 
-  defp default_opts_for_driver(driver), do: default_opts_for_driver(driver, System.get_env("USE_W3C"))
-  defp default_opts_for_driver("phantom", nil), do: []
-  defp default_opts_for_driver("selenium", nil) do
+  defp default_opts_for_driver("phantom"), do: []
+  defp default_opts_for_driver("selenium") do
     [
       capabilities: %{
         browserName: "firefox",
@@ -55,26 +61,8 @@ defmodule Wallaby.Integration.SessionCase do
       }
     ]
   end
-  defp default_opts_for_driver("selenium", _use_w3c) do
-    [
-      use_w3c: true,
-      capabilities: %{
-        firstMatch: [
-          %{
-            browserName: "firefox",
-            "moz:firefoxOptions": %{
-              args: [
-                "-headless"
-              ]
-            }
-          }
-        ]
-      }
-    ]
-  end
-  defp default_opts_for_driver("chrome", nil), do: []
-  defp default_opts_for_driver("chrome", _use_w3c), do: [use_w3c: true]
-  defp default_opts_for_driver(other, _) do
+  defp default_opts_for_driver("chrome"), do: []
+  defp default_opts_for_driver(other) do
     raise "Unknown value for WALLABY_DRIVER environment variable: #{other}"
   end
 end
