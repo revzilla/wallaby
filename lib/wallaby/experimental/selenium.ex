@@ -135,9 +135,9 @@ defmodule Wallaby.Experimental.Selenium do
     WebdriverClient.attribute(element, name)
   end
 
-  def property(%Element{} = element, name) do
-    WebdriverClient.property(element, name)
-  end
+  # def property(%Element{} = element, name) do
+  #   WebdriverClient.property(element, name)
+  # end
 
   @spec clear(Element.t) :: {:ok, nil} | {:error, Driver.reason}
   def clear(%Element{} = element) do

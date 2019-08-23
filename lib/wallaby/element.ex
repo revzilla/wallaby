@@ -136,18 +136,18 @@ defmodule Wallaby.Element do
     end
   end
 
-  @doc """
-  Gets the value of the element's property.
-  """
-  @spec prop(t, attr()) :: String.t | nil
-  def prop(%__MODULE__{driver: driver} = element, name) do
-    case driver.property(element, name) do
-      {:ok, property} ->
-        property
-      {:error, :stale_reference} ->
-        raise StaleReferenceError
-    end
-  end
+  # @doc """
+  # Gets the value of the element's property.
+  # """
+  # @spec prop(t, attr()) :: String.t | nil
+  # def prop(%__MODULE__{driver: driver} = element, name) do
+  #   case driver.property(element, name) do
+  #     {:ok, property} ->
+  #       property
+  #     {:error, :stale_reference} ->
+  #       raise StaleReferenceError
+  #   end
+  # end
 
   @doc """
   Returns a boolean based on whether or not the element is selected.
@@ -221,7 +221,7 @@ defmodule Wallaby.Element do
   @spec value(t) :: String.t
 
   def value(element) do
-    prop(element, "value")
+    attr(element, "value")
   end
 end
 
@@ -229,7 +229,7 @@ defimpl Inspect, for: Wallaby.Element  do
   import Inspect.Algebra
 
   def inspect(element, opts) do
-    outer_html = Wallaby.Element.prop(element, "outerHTML")
+    outer_html = Wallaby.Element.attr(element, "outerHTML")
 
     concat([
       Inspect.Any.inspect(element, opts),
