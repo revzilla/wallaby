@@ -147,10 +147,17 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
   def click(parent, button) when button in [:left, :middle, :right] do
     with {:ok, resp} <-
            request(:post, "#{parent.session_url}/actions", %{
-             "actions" => [
-               mouse_button_event_action(button, :down),
-               mouse_button_event_action(button, :up)
-             ]
+            "actions" => [
+              %{
+                "id" => "default mouse",
+                "type" => "pointer",
+                "parameters" => %{"pointerType" => "mouse"},
+                "actions" => [
+                  mouse_button_event_action(button, :down),
+                  mouse_button_event_action(button, :up)
+                ]
+              }
+            ]
            }),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
@@ -164,10 +171,17 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
     with {:ok, resp} <-
            request(:post, "#{parent.session_url}/actions", %{
              "actions" => [
-               mouse_button_event_action(:left, :down),
-               mouse_button_event_action(:left, :up),
-               mouse_button_event_action(:left, :down),
-               mouse_button_event_action(:left, :up)
+               %{
+                 "id" => "default mouse",
+                 "type" => "pointer",
+                 "parameters" => %{"pointerType" => "mouse"},
+                 "actions" => [
+                   mouse_button_event_action(:left, :down),
+                   mouse_button_event_action(:left, :up),
+                   mouse_button_event_action(:left, :down),
+                   mouse_button_event_action(:left, :up)
+                 ]
+               }
              ]
            }),
          {:ok, value} <- Map.fetch(resp, "value"),
@@ -183,7 +197,12 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
     with {:ok, resp} <-
            request(:post, "#{parent.session_url}/actions", %{
              "actions" => [
-               mouse_button_event_action(button, :down)
+               %{
+                 "id" => "default mouse",
+                 "type" => "pointer",
+                 "parameters" => %{"pointerType" => "mouse"},
+                 "actions" => [mouse_button_event_action(button, :down)]
+               }
              ]
            }),
          {:ok, value} <- Map.fetch(resp, "value"),
@@ -199,7 +218,12 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
     with {:ok, resp} <-
            request(:post, "#{parent.session_url}/actions", %{
              "actions" => [
-               mouse_button_event_action(button, :up)
+               %{
+                 "id" => "default mouse",
+                 "type" => "pointer",
+                 "parameters" => %{"pointerType" => "mouse"},
+                 "actions" => [mouse_button_event_action(button, :up)]
+               }
              ]
            }),
          {:ok, value} <- Map.fetch(resp, "value"),
@@ -216,12 +240,7 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
         :up -> "pointerUp"
       end
 
-    %{
-      "id" => "default mouse",
-      "type" => "pointer",
-      "parameters" => %{"pointerType" => "mouse"},
-      "actions" => [%{"type" => action_type, "button" => button_mapping[button]}]
-    }
+    %{"type" => action_type, "button" => button_mapping[button]}
   end
 
   @doc """
@@ -290,12 +309,12 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
   def attribute(element, name) do
     with {:ok, resp} <- request(:get, "#{element.url}/property/#{name}"),
          {:ok, value} <- Map.fetch(resp, "value") do
-          if value do
-            {:ok, value}
-          else
-            attribute_fallback(element, name)
-          end
-         end
+      if value do
+        {:ok, value}
+      else
+        attribute_fallback(element, name)
+      end
+    end
   end
 
   @doc """
@@ -315,11 +334,11 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
 
   This should return the current element property value from the DOM
   """
-  @spec property(Element.t, String.t) :: {:ok, String.t}
+  @spec property(Element.t(), String.t()) :: {:ok, String.t()}
   def property(element, name) do
-    with {:ok, resp}  <- request(:get, "#{element.url}/property/#{name}"),
-          {:ok, value} <- Map.fetch(resp, "value"),
-      do: {:ok, value}
+    with {:ok, resp} <- request(:get, "#{element.url}/property/#{name}"),
+         {:ok, value} <- Map.fetch(resp, "value"),
+         do: {:ok, value}
   end
 
   @doc """
