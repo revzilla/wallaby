@@ -6,8 +6,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   alias Wallaby.Helpers.KeyCodes
   import Wallaby.HTTPClient
 
-  is_displayed_atom =
-    File.read!("priv/is-displayed.js")
+  is_displayed_atom = File.read!("priv/is-displayed.js")
 
   @is_displayed_atom is_displayed_atom
 
@@ -208,7 +207,7 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   end
 
   def mouse_button_event_action(button, type)
-       when button in [:left, :middle, :right] and type in [:down, :up] do
+      when button in [:left, :middle, :right] and type in [:down, :up] do
     button_mapping = %{left: 0, middle: 1, right: 2}
 
     action_type =
@@ -289,19 +288,24 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   """
   @spec attribute(Element.t(), String.t()) :: {:ok, String.t()}
   def attribute(element, name) do
-    with {:ok, resp} <- request(:get, "#{element.url}/attribute/#{name}"),
-         {:ok, value} <- Map.fetch(resp, "value"),
-         do: {:ok, value}
+    with {:ok, resp} <- request(:get, "#{element.url}/property/#{name}"),
+         {:ok, value} <- Map.fetch(resp, "value") do
+          if value do
+            {:ok, value}
+          else
+            attribute_fallback(element, name)
+          end
+         end
   end
 
   @doc """
-  Gets the value of an elements property
+  Gets the value of an elements attribute
 
-  This should return the current element property value from the DOM
+  This is a fallback for when Firefox doesn't return with attribute under property endpoint
   """
-  @spec property(Element.t(), String.t()) :: {:ok, String.t()}
-  def property(element, name) do
-    with {:ok, resp} <- request(:get, "#{element.url}/property/#{name}"),
+  @spec attribute_fallback(Element.t(), String.t()) :: {:ok, String.t()}
+  def attribute_fallback(element, name) do
+    with {:ok, resp} <- request(:get, "#{element.url}/attribute/#{name}"),
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
@@ -384,7 +388,9 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
   end
 
   defp displayed_using_atom(element) do
-    execute_script(element, "return (#{@is_displayed_atom}).apply(null, arguments);", [%{"ELEMENT" => element.id, @web_element_identifier => element.id}])
+    execute_script(element, "return (#{@is_displayed_atom}).apply(null, arguments);", [
+      %{"ELEMENT" => element.id, @web_element_identifier => element.id}
+    ])
   end
 
   @doc """

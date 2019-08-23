@@ -180,8 +180,8 @@ defmodule Wallaby.Experimental.Chrome do
   def visit(session, url), do: delegate(:visit, session, [url])
   @doc false
   def attribute(element, name), do: delegate(:attribute, element, [name])
-  @doc false
-  def property(element, name), do: delegate(:property, element, [name])
+  # @doc false
+  # def property(element, name), do: delegate(:property, element, [name])
   @doc false
   def click(element), do: delegate(:click, element)
   @doc false
