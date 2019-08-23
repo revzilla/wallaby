@@ -41,7 +41,7 @@ defmodule Wallaby.Experimental.Selenium do
     create_session_fn = Keyword.get(opts, :create_session_fn, default_create_session_fn)
 
     capabilities =
-      capabilities || default_capabilities(use_w3c)
+      capabilities || default_capabilities()
 
     with {:ok, response} <- create_session_fn.(base_url, capabilities) do
       id = response["value"]["sessionId"] || response["sessionId"]
@@ -188,15 +188,7 @@ defmodule Wallaby.Experimental.Selenium do
   def send_keys(%{use_w3c: true} = parent, keys), do: W3CWebdriverClient.send_keys(parent, keys)
   def send_keys(%{use_w3c: false} = parent, keys), do: WebdriverClient.send_keys(parent, keys)
 
-  defp default_capabilities(true = _use_w3c) do
-    %{
-      firstMatch: [
-        default_capabilities(false)
-      ]
-    }
-  end
-
-  defp default_capabilities(false = _use_w3c) do
+  defp default_capabilities() do
     %{
       browserName: "firefox",
       "moz:firefoxOptions": %{
