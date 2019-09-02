@@ -110,6 +110,43 @@ defmodule Wallaby.Element do
   end
 
   @doc """
+  Touches and holds an element.
+  """
+  @spec touch_down(t, String.t) :: t
+
+  def touch_down(%__MODULE__{driver: driver} = element, touch_source_id \\ "default touch") do
+    case driver.touch_down(element, touch_source_id) do
+      {:ok, val} ->
+        IO.inspect val
+        element
+    end
+  end
+
+  @doc """
+  Taps the given element.
+  """
+  @spec tap(t, String.t) :: t
+
+  def tap(%__MODULE__{driver: driver} = element, touch_source_id \\ "default touch") do
+    case driver.tap(element, touch_source_id) do
+      {:ok, _} ->
+        element
+    end
+  end
+
+  @doc """
+  Touches the given element, scrolls by the given offset and stops touching.
+  """
+  @spec touch_scroll(t, integer, integer, String.t) :: t
+
+  def touch_scroll(%__MODULE__{driver: driver} = element, x_offset, y_offset, touch_source_id \\ "default touch") do
+    case driver.touch_scroll(element, x_offset, y_offset, touch_source_id) do
+      {:ok, _} ->
+        element
+    end
+  end
+
+  @doc """
   Returns the text from the element.
   """
   @spec text(t) :: String.t
