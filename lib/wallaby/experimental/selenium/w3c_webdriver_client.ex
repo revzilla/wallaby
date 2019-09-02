@@ -368,7 +368,7 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
                      "type" => "pointerMove",
                      "x" => x_offset,
                      "y" => y_offset,
-                     "origin" => %{@web_element_identifier => element.id}
+                     "origin" => "pointer"
                    },
                    %{"type" => "pointerUp"}
                  ]
