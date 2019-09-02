@@ -173,6 +173,7 @@ defmodule Wallaby.Experimental.Selenium do
   def touch_up(%Session{use_w3c: true} = session, touch_source_id), do: W3CWebdriverClient.touch_up(session, touch_source_id)
   def tap(%Element{use_w3c: true} = element, touch_source_id), do: W3CWebdriverClient.tap(element, touch_source_id)
   def touch_scroll(%Element{use_w3c: true} = element, x_offset, y_offset, touch_source_id), do: W3CWebdriverClient.touch_scroll(element, x_offset, y_offset, touch_source_id)
+  def touch_scroll(%Element{use_w3c: false} = element, x_offset, y_offset, touch_source_id), do: WebdriverClient.touch_scroll(element, x_offset, y_offset, touch_source_id)
   def displayed(%Element{use_w3c: true} = element), do: W3CWebdriverClient.displayed(element)
   def displayed(%Element{use_w3c: false} = element), do: WebdriverClient.displayed(element)
   def selected(%Element{use_w3c: true} = element), do: W3CWebdriverClient.selected(element)

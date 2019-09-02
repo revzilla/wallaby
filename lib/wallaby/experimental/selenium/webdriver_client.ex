@@ -592,4 +592,14 @@ defmodule Wallaby.Experimental.Selenium.WebdriverClient do
          {:ok, value} <- Map.fetch(resp, "value"),
          do: {:ok, value}
   end
+
+  # TODO: remove when we contribute this upstream
+  def touch_scroll(element, x_offset, y_offset, _touch_source_id) do
+    {:ok, _} =
+      request(:post, "#{element.session_url}/touch/scroll", %{
+        element: element.id,
+        xoffset: x_offset,
+        yoffset: y_offset
+      })
+  end
 end
