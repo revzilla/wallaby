@@ -618,7 +618,7 @@ defmodule Wallaby.Browser do
   """
   @spec touch_down(parent, Query.t(), String.t()) :: session
 
-  def touch_down(parent, query, touch_source_id \\ "default touch") do
+  def touch_down(parent, query, touch_source_id \\ "touch screen") do
     parent
     |> find(query, &Element.touch_down(&1, touch_source_id))
   end
@@ -628,7 +628,7 @@ defmodule Wallaby.Browser do
   """
   @spec touch_up(parent, String.t()) :: session
 
-  def touch_up(parent, touch_source_id \\ "default touch") do
+  def touch_up(parent, touch_source_id \\ "touch screen") do
     case parent.driver.touch_up(parent, touch_source_id) do
       {:ok, _} ->
         parent
@@ -640,7 +640,7 @@ defmodule Wallaby.Browser do
   """
   @spec tap(parent, Query.t(), String.t()) :: session
 
-  def tap(parent, query, touch_source_id \\ "default touch") do
+  def tap(parent, query, touch_source_id \\ "touch screen") do
     parent
     |> find(query, &Element.tap(&1, touch_source_id))
   end

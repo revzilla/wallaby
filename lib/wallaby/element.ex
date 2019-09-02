@@ -114,7 +114,7 @@ defmodule Wallaby.Element do
   """
   @spec touch_down(t, String.t) :: t
 
-  def touch_down(%__MODULE__{driver: driver} = element, touch_source_id \\ "default touch") do
+  def touch_down(%__MODULE__{driver: driver} = element, touch_source_id \\ "touch screen") do
     case driver.touch_down(element, touch_source_id) do
       {:ok, val} ->
         IO.inspect val
@@ -127,7 +127,7 @@ defmodule Wallaby.Element do
   """
   @spec tap(t, String.t) :: t
 
-  def tap(%__MODULE__{driver: driver} = element, touch_source_id \\ "default touch") do
+  def tap(%__MODULE__{driver: driver} = element, touch_source_id \\ "touch screen") do
     case driver.tap(element, touch_source_id) do
       {:ok, _} ->
         element
@@ -139,7 +139,7 @@ defmodule Wallaby.Element do
   """
   @spec touch_scroll(t, integer, integer, String.t) :: t
 
-  def touch_scroll(%__MODULE__{driver: driver} = element, x_offset, y_offset, touch_source_id \\ "default touch") do
+  def touch_scroll(%__MODULE__{driver: driver} = element, x_offset, y_offset, touch_source_id \\ "touch screen") do
     case driver.touch_scroll(element, x_offset, y_offset, touch_source_id) do
       {:ok, _} ->
         element

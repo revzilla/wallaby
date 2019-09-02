@@ -334,7 +334,7 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
            request(:post, "#{element.session_url}/actions", %{
              "actions" => [
                %{
-                 "id" => "touch" <> touch_source_id,
+                 "id" => touch_source_id,
                  "type" => "pointer",
                  "parameters" => %{"pointerType" => "touch"},
                  "actions" => [
