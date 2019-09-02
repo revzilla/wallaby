@@ -148,8 +148,15 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
     with {:ok, resp} <-
            request(:post, "#{parent.session_url}/actions", %{
              "actions" => [
-               mouse_button_event_action(button, :down),
-               mouse_button_event_action(button, :up)
+               %{
+                 "id" => "default mouse",
+                 "type" => "pointer",
+                 "parameters" => %{"pointerType" => "mouse"},
+                 "actions" => [
+                   mouse_button_event_action(button, :down),
+                   mouse_button_event_action(button, :up)
+                 ]
+               }
              ]
            }),
          {:ok, value} <- Map.fetch(resp, "value"),
@@ -164,10 +171,17 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
     with {:ok, resp} <-
            request(:post, "#{parent.session_url}/actions", %{
              "actions" => [
-               mouse_button_event_action(:left, :down),
-               mouse_button_event_action(:left, :up),
-               mouse_button_event_action(:left, :down),
-               mouse_button_event_action(:left, :up)
+               %{
+                 "id" => "default mouse",
+                 "type" => "pointer",
+                 "parameters" => %{"pointerType" => "mouse"},
+                 "actions" => [
+                   mouse_button_event_action(:left, :down),
+                   mouse_button_event_action(:left, :up),
+                   mouse_button_event_action(:left, :down),
+                   mouse_button_event_action(:left, :up)
+                 ]
+               }
              ]
            }),
          {:ok, value} <- Map.fetch(resp, "value"),
@@ -183,7 +197,12 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
     with {:ok, resp} <-
            request(:post, "#{parent.session_url}/actions", %{
              "actions" => [
-               mouse_button_event_action(button, :down)
+               %{
+                 "id" => "default mouse",
+                 "type" => "pointer",
+                 "parameters" => %{"pointerType" => "mouse"},
+                 "actions" => [mouse_button_event_action(button, :down)]
+               }
              ]
            }),
          {:ok, value} <- Map.fetch(resp, "value"),
@@ -199,7 +218,12 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
     with {:ok, resp} <-
            request(:post, "#{parent.session_url}/actions", %{
              "actions" => [
-               mouse_button_event_action(button, :up)
+               %{
+                 "id" => "default mouse",
+                 "type" => "pointer",
+                 "parameters" => %{"pointerType" => "mouse"},
+                 "actions" => [mouse_button_event_action(button, :up)]
+               }
              ]
            }),
          {:ok, value} <- Map.fetch(resp, "value"),
@@ -216,12 +240,7 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
         :up -> "pointerUp"
       end
 
-    %{
-      "id" => "default mouse",
-      "type" => "pointer",
-      "parameters" => %{"pointerType" => "mouse"},
-      "actions" => [%{"type" => action_type, "button" => button_mapping[button]}]
-    }
+    %{"type" => action_type, "button" => button_mapping[button]}
   end
 
   @doc """
@@ -264,6 +283,112 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
   end
 
   @doc """
+  Touch and hold an element.
+  """
+  @spec touch_down(Element.t(), String.t()) :: {:ok, map}
+  def touch_down(element, touch_source_id) do
+    with {:ok, resp} <-
+           request(:post, "#{element.session_url}/actions", %{
+             "actions" => [
+               %{
+                 "id" => touch_source_id,
+                 "type" => "pointer",
+                 "parameters" => %{"pointerType" => "touch"},
+                 "actions" => [
+                   move_pointer_over_element_action(element),
+                   %{"type" => "pointerDown"}
+                 ]
+               }
+             ]
+           }),
+         {:ok, value} <- Map.fetch(resp, "value"),
+         do: {:ok, value}
+  end
+
+  @doc """
+  Stop touching the screen over the given element.
+  """
+  @spec touch_up(Session.t(), String.t()) :: {:ok, map}
+  def touch_up(session, touch_source_id) do
+    with {:ok, resp} <-
+           request(:post, "#{session.session_url}/actions", %{
+             "actions" => [
+               %{
+                 "id" => touch_source_id,
+                 "type" => "pointer",
+                 "parameters" => %{"pointerType" => "touch"},
+                 "actions" => [%{"type" => "pointerUp"}]
+               }
+             ]
+           }),
+         {:ok, value} <- Map.fetch(resp, "value"),
+         do: {:ok, value}
+  end
+
+  @doc """
+  Taps the given element.
+  """
+  @spec tap(Element.t(), String.t()) :: {:ok, map}
+  def tap(element, touch_source_id) do
+    with {:ok, resp} <-
+           request(:post, "#{element.session_url}/actions", %{
+             "actions" => [
+               %{
+                 "id" => touch_source_id,
+                 "type" => "pointer",
+                 "parameters" => %{"pointerType" => "touch"},
+                 "actions" => [
+                   move_pointer_over_element_action(element),
+                   %{"type" => "pointerDown"},
+                   %{"type" => "pointerUp"}
+                 ]
+               }
+             ]
+           }),
+         {:ok, value} <- Map.fetch(resp, "value"),
+         do: {:ok, value}
+  end
+
+  @doc """
+  Scroll on the touch screen.
+  """
+  @spec touch_scroll(Element.t(), integer, integer, String.t()) :: {:ok, map}
+  def touch_scroll(element, x_offset, y_offset, touch_source_id) do
+    with {:ok, resp} <-
+           request(:post, "#{element.session_url}/actions", %{
+             "actions" => [
+               %{
+                 "id" => touch_source_id,
+                 "type" => "pointer",
+                 "parameters" => %{"pointerType" => "touch"},
+                 "actions" => [
+                   move_pointer_over_element_action(element),
+                   %{"type" => "pointerDown"},
+                   %{
+                     "type" => "pointerMove",
+                     "x" => x_offset,
+                     "y" => y_offset,
+                     "origin" => %{@web_element_identifier => element.id}
+                   },
+                   %{"type" => "pointerUp"}
+                 ]
+               }
+             ]
+           }),
+         {:ok, value} <- Map.fetch(resp, "value"),
+         do: {:ok, value}
+  end
+
+  defp move_pointer_over_element_action(element) do
+    %{
+      "type" => "pointerMove",
+      "x" => 0,
+      "y" => 0,
+      "origin" => %{@web_element_identifier => element.id}
+    }
+  end
+
+  @doc """
   Gets the text for an element.
   """
   @spec text(Element.t()) :: {:ok, String.t()}
@@ -290,12 +415,12 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
   def attribute(element, name) do
     with {:ok, resp} <- request(:get, "#{element.url}/property/#{name}"),
          {:ok, value} <- Map.fetch(resp, "value") do
-          if value do
-            {:ok, value}
-          else
-            attribute_fallback(element, name)
-          end
-         end
+      if value do
+        {:ok, value}
+      else
+        attribute_fallback(element, name)
+      end
+    end
   end
 
   @doc """
@@ -315,11 +440,11 @@ defmodule Wallaby.Experimental.Selenium.W3CWebdriverClient do
 
   This should return the current element property value from the DOM
   """
-  @spec property(Element.t, String.t) :: {:ok, String.t}
+  @spec property(Element.t(), String.t()) :: {:ok, String.t()}
   def property(element, name) do
-    with {:ok, resp}  <- request(:get, "#{element.url}/property/#{name}"),
-          {:ok, value} <- Map.fetch(resp, "value"),
-      do: {:ok, value}
+    with {:ok, resp} <- request(:get, "#{element.url}/property/#{name}"),
+         {:ok, value} <- Map.fetch(resp, "value"),
+         do: {:ok, value}
   end
 
   @doc """
