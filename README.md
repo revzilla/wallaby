@@ -71,7 +71,7 @@ Add Wallaby to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:wallaby, "~> 0.22.0", [runtime: false, only: :test]}]
+  [{:wallaby, "~> 0.23.0", [runtime: false, only: :test]}]
 end
 ```
 
@@ -203,7 +203,7 @@ You will also want to add `phoenix_ecto` as a dependency to `MyWebApp`:
 
 def deps do
   [
-    {:wallaby, "~> 0.21", only: :test},
+    {:wallaby, "~> 0.23", only: :test},
     {:phoenix_ecto, "~> 3.0", only: :test}
   ]
 end
@@ -493,9 +493,9 @@ session
 
 ### Interacting with dialogs
 
-Wallaby provides several ways to interact with JavaScript dialogs such as `window.alert`, `window.confirm` and `window.prompt`. To accept/dismiss all dialogs in the current session you can use `accept_dialogs` and `dismiss_dialogs`. The default behavior is equivalent to using `dismiss_dialogs`.
+Wallaby provides several ways to interact with JavaScript dialogs such as `window.alert`, `window.confirm` and `window.prompt`.
 
-For more fine-grained control over individual dialogs, you can use one of the following functions:
+You can use one of the following functions:
 
 * For `window.alert` use `accept_alert/2`
 * For `window.confirm` use `accept_confirm/2` or `dismiss_confirm/2`
@@ -617,11 +617,22 @@ To run selenium you'll need to install selenium-server-standalone and geckodrive
 Once you have these tools installed you'll need to manually start selenium-server separately
 from your test run.
 
+#### Custom Selenium URL
+
+To configure the `remote_url` that Wallaby will use to connect to the Selenium server, pass it as an option to `Wallaby.start_session`.
+
+```elixir
+Wallaby.start_session(
+  remote_url: "http://selenium:4444/wd/hub/",
+  capabilities: %{browserName: "firefox"}
+)
+```
+
 ## Contributing
 
 Wallaby is a community project. PRs and Issues are greatly welcome.
 
-To get started and setup the project, make sure you've got Elixir 1.7+ installed and then:
+To get started and setup the project, make sure you've got Elixir 1.5+ installed and then:
 
 ```
 $ mix deps.get

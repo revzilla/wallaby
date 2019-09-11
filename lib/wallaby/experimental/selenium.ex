@@ -143,8 +143,28 @@ defmodule Wallaby.Experimental.Selenium do
     WebdriverClient.click(element)
   end
 
+  def click(parent, button) do
+    WebdriverClient.click(parent, button)
+  end
+
+  def button_down(parent, button) do
+    WebdriverClient.button_down(parent, button)
+  end
+
+  def button_up(parent, button) do
+    WebdriverClient.button_up(parent, button)
+  end
+
+  def double_click(parent) do
+    WebdriverClient.double_click(parent)
+  end
+
   def hover(%Element{} = element) do
-    WebdriverClient.hover(element)
+    WebdriverClient.move_mouse_to(nil, element)
+  end
+
+  def move_mouse_by(session, x_offset, y_offset) do
+    WebdriverClient.move_mouse_to(session, nil, x_offset, y_offset)
   end
 
   def displayed(%Element{} = element) do
@@ -170,6 +190,10 @@ defmodule Wallaby.Experimental.Selenium do
 
   def execute_script(parent, script, arguments \\ []) do
     WebdriverClient.execute_script(parent, script, arguments)
+  end
+
+  def execute_script_async(parent, script, arguments \\ []) do
+    WebdriverClient.execute_script_async(parent, script, arguments)
   end
 
   def send_keys(parent, keys) do
