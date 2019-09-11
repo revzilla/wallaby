@@ -71,7 +71,7 @@ Add Wallaby to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:wallaby, "~> 0.22.0", [runtime: false, only: :test]}]
+  [{:wallaby, "~> 0.23.0", [runtime: false, only: :test]}]
 end
 ```
 
@@ -203,7 +203,7 @@ You will also want to add `phoenix_ecto` as a dependency to `MyWebApp`:
 
 def deps do
   [
-    {:wallaby, "~> 0.21", only: :test},
+    {:wallaby, "~> 0.23", only: :test},
     {:phoenix_ecto, "~> 3.0", only: :test}
   ]
 end
@@ -616,6 +616,17 @@ config :wallaby,
 To run selenium you'll need to install selenium-server-standalone and geckodriver.
 Once you have these tools installed you'll need to manually start selenium-server separately
 from your test run.
+
+#### Custom Selenium URL
+
+To configure the `remote_url` that Wallaby will use to connect to the Selenium server, pass it as an option to `Wallaby.start_session`.
+
+```elixir
+Wallaby.start_session(
+  remote_url: "http://selenium:4444/wd/hub/",
+  capabilities: %{browserName: "firefox"}
+)
+```
 
 ## Contributing
 
